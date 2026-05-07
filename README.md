@@ -16,7 +16,7 @@ npm install
 2. Rename the first sheet to `Goats`.
 3. Set row 1 headers for `Goats` in exact order:
 
-`ID | Farm_ID | Gender | Birthdate | Name | Barcode | QR_Code | Parent_Buck | Parent_Doe | Date_Disposed | Weight | Medical_History | Remarks | Created_At | Updated_At | Image`
+`ID | Farm_ID | Gender | Birthdate | Name | QR_Code | Parent_Buck | Parent_Doe | Date_Disposed | Weight | Medical_History | Remarks | Created_At | Updated_At | Image`
 
 4. Create a second sheet named `Goat_Weight_History` with row 1 headers:
 

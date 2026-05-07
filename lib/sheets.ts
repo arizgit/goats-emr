@@ -2,8 +2,8 @@ import { google } from "googleapis";
 import { GOAT_HEADERS, Goat, WEIGHT_HISTORY_HEADERS, WeightHistoryEntry } from "@/lib/types";
 
 const SHEET_NAME = "Goats";
-const SHEET_RANGE = "A:P";
-const HEADER_RANGE = "A1:P1";
+const SHEET_RANGE = "A:O";
+const HEADER_RANGE = "A1:O1";
 const WEIGHT_HISTORY_SHEET_NAME = "Goat_Weight_History";
 const WEIGHT_HISTORY_RANGE = "A:C";
 const WEIGHT_HISTORY_HEADER_RANGE = "A1:C1";
@@ -34,9 +34,8 @@ function getSpreadsheetId() {
 }
 
 function rowToGoat(row: string[]): Goat {
-  const isLegacyLayout = row.length === 13;
-  const isCurrentLayout = row.length === 14;
-  const isTimestampedLayout = row.length >= 16;
+  const isQrOnlyLayout = row.length >= 15;
+  const isLegacyLayout = row.length >= 16;
 
   return {
     ID: row[0] || "",
@@ -44,18 +43,16 @@ function rowToGoat(row: string[]): Goat {
     Gender: (row[2] as Goat["Gender"]) || "",
     Birthdate: row[3] || "",
     Name: row[4] || "",
-    Barcode: row[5] || "",
-    "QR Code": row[6] || "",
-    // Timestamped layout: image is last. Legacy/current layout support is retained.
-    Image: isLegacyLayout ? row[7] || "" : isTimestampedLayout ? row[15] || "" : row[13] || "",
-    "Parent Buck": isLegacyLayout ? row[8] || "" : row[7] || "",
-    "Parent Doe": isLegacyLayout ? row[9] || "" : row[8] || "",
-    "Date Disposed": isLegacyLayout ? row[10] || "" : row[9] || "",
-    Weight: isLegacyLayout ? row[11] || "" : row[10] || "",
-    "Medical History": isLegacyLayout ? "[]" : row[11] || "[]",
-    Remarks: isLegacyLayout ? row[12] || "" : row[12] || "",
-    "Created At": isTimestampedLayout ? row[13] || "" : "",
-    "Updated At": isTimestampedLayout ? row[14] || "" : ""
+    "QR Code": isLegacyLayout ? row[6] || "" : row[5] || "",
+    Image: isLegacyLayout ? row[15] || "" : row[14] || "",
+    "Parent Buck": isLegacyLayout ? row[7] || "" : row[6] || "",
+    "Parent Doe": isLegacyLayout ? row[8] || "" : row[7] || "",
+    "Date Disposed": isLegacyLayout ? row[9] || "" : row[8] || "",
+    Weight: isLegacyLayout ? row[10] || "" : row[9] || "",
+    "Medical History": isLegacyLayout ? row[11] || "[]" : row[10] || "[]",
+    Remarks: isLegacyLayout ? row[12] || "" : row[11] || "",
+    "Created At": isQrOnlyLayout ? (isLegacyLayout ? row[13] : row[12]) || "" : "",
+    "Updated At": isQrOnlyLayout ? (isLegacyLayout ? row[14] : row[13]) || "" : ""
   };
 }
 
@@ -66,7 +63,6 @@ function goatToRow(goat: Goat): string[] {
     goat.Gender,
     goat.Birthdate,
     goat.Name,
-    goat.Barcode,
     goat["QR Code"] || "",
     goat["Parent Buck"],
     goat["Parent Doe"],
@@ -122,7 +118,7 @@ export async function updateGoatById(id: string, goat: Goat) {
 
   await sheets.spreadsheets.values.update({
     spreadsheetId,
-    range: `${SHEET_NAME}!A${sheetRowNumber}:P${sheetRowNumber}`,
+    range: `${SHEET_NAME}!A${sheetRowNumber}:O${sheetRowNumber}`,
     valueInputOption: "USER_ENTERED",
     requestBody: {
       values: [goatToRow(goat)]
@@ -137,9 +133,9 @@ export async function getGoatById(id: string) {
   return goats.find((goat) => goat.ID === id) || null;
 }
 
-export async function getGoatByBarcode(barcode: string) {
+export async function getGoatByQrCode(qrCode: string) {
   const goats = await getAllGoats();
-  return goats.find((goat) => goat.Barcode === barcode) || null;
+  return goats.find((goat) => goat["QR Code"] === qrCode) || null;
 }
 
 export async function validateHeaders() {
@@ -153,17 +149,8 @@ export async function validateHeaders() {
   const headers = res.data.values?.[0] || [];
   const normalizedHeaders = headers.map((header) => (header || "").trim().toLowerCase());
   const expectedHeaders = GOAT_HEADERS.map((header) => header.toLowerCase());
-  const currentHeaders = expectedHeaders.filter((header) => !["created_at", "updated_at"].includes(header));
-  const legacyHeaders = currentHeaders.filter((header) => header !== "medical_history");
-
   const isCurrentHeaderMatch = expectedHeaders.every((header, index) => normalizedHeaders[index] === header);
-  if (isCurrentHeaderMatch) return true;
-
-  const isPreTimestampHeaderMatch = currentHeaders.every((header, index) => normalizedHeaders[index] === header);
-  if (isPreTimestampHeaderMatch) return true;
-
-  // Backward-compatible with older sheets that still have no medical_history column.
-  return legacyHeaders.every((header, index) => normalizedHeaders[index] === header);
+  return isCurrentHeaderMatch;
 }
 
 export async function generateNextGoatId() {

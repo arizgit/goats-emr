@@ -4,7 +4,6 @@ export type Goat = {
   Gender: "M" | "F" | "";
   Birthdate: string;
   Name: string;
-  Barcode: string;
   "QR Code": string;
   Image: string;
   "Parent Buck": string;
@@ -29,7 +28,6 @@ export const GOAT_HEADERS = [
   "gender",
   "birthdate",
   "name",
-  "barcode",
   "qr_code",
   "parent_buck",
   "parent_doe",

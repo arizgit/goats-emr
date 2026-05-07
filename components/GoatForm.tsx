@@ -9,7 +9,7 @@ import { Goat } from "@/lib/types";
 type Props = {
   initialValue?: Goat;
   mode: "create" | "edit";
-  prefilledBarcode?: string;
+  prefilledQrCode?: string;
 };
 
 type MedFrequency = "quarterly" | "semi_annual" | "annual" | "none";
@@ -76,7 +76,6 @@ const emptyGoat: Goat = {
   Gender: "",
   Birthdate: "",
   Name: "",
-  Barcode: "",
   "QR Code": "",
   Image: "",
   "Parent Buck": "",
@@ -89,14 +88,15 @@ const emptyGoat: Goat = {
   "Updated At": ""
 };
 
-export default function GoatForm({ initialValue, mode, prefilledBarcode }: Props) {
+export default function GoatForm({ initialValue, mode, prefilledQrCode }: Props) {
   const router = useRouter();
   const [goat, setGoat] = useState<Goat>(
-    initialValue || { ...emptyGoat, Barcode: prefilledBarcode || "" }
+    initialValue || { ...emptyGoat, "QR Code": prefilledQrCode || "" }
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [qrScanStatus, setQrScanStatus] = useState("");
   const [showScanner, setShowScanner] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
   const [idLoading, setIdLoading] = useState(mode === "create");
@@ -270,6 +270,54 @@ export default function GoatForm({ initialValue, mode, prefilledBarcode }: Props
     }
   };
 
+  const handleQrDetected = async (value: string) => {
+    const detectedValue = value.trim();
+    if (!detectedValue) return;
+
+    setQrScanStatus(`Detected QR code: ${detectedValue}`);
+    const updatedGoat = { ...goat, "QR Code": detectedValue };
+    setGoat(updatedGoat);
+
+    // Create mode keeps manual save flow; edit mode auto-saves to avoid missed updates.
+    if (mode !== "edit") {
+      setSuccess("QR code captured. Tap Save to persist.");
+      setShowScanner(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError("");
+      setSuccess("");
+
+      const normalizedGoat: Goat = {
+        ...updatedGoat,
+        "Medical History": JSON.stringify(medicalHistory),
+        Name: updatedGoat.Name
+          ? `${updatedGoat.Name.trim().charAt(0).toUpperCase()}${updatedGoat.Name.trim().slice(1)}`
+          : ""
+      };
+
+      const endpoint = `/api/goats/${encodeURIComponent(initialValue?.ID || updatedGoat.ID)}`;
+      const res = await fetch(endpoint, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(normalizedGoat)
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Request failed.");
+
+      setSuccess("QR code scanned and saved.");
+      setGoat(normalizedGoat);
+      setShowScanner(false);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save scanned QR code.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <h2 className="text-xl font-bold text-farm-700">{title}</h2>
@@ -306,18 +354,16 @@ export default function GoatForm({ initialValue, mode, prefilledBarcode }: Props
 
       <div className="space-y-2">
         <label className="block">
-          <span className="mb-1 block text-sm font-medium">Barcode</span>
-          <input value={goat.Barcode} onChange={(e) => handleChange("Barcode", e.target.value)} className="w-full rounded-xl border border-farm-200 p-3 text-base" />
+          <span className="mb-1 block text-sm font-medium">QR Code</span>
+          <input value={goat["QR Code"]} onChange={(e) => handleChange("QR Code", e.target.value)} className="w-full rounded-xl border border-farm-200 p-3 text-base" />
         </label>
         <button type="button" onClick={() => setShowScanner((prev) => !prev)} className="w-full rounded-xl bg-farm-600 px-4 py-3 text-base font-semibold text-white">
-          {showScanner ? "Hide Scanner" : "Scan Barcode"}
+          {showScanner ? "Hide Scanner" : "Scan QR Code"}
         </button>
+        {qrScanStatus && <p className="rounded-lg bg-white p-3 text-sm">{qrScanStatus}</p>}
         {showScanner && (
           <BarcodeScanner
-            onDetected={(value) => {
-              handleChange("Barcode", value);
-              setShowScanner(false);
-            }}
+            onDetected={(value) => void handleQrDetected(value)}
           />
         )}
       </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { BrowserMultiFormatReader } from "@zxing/browser";
+import { BarcodeFormat, DecodeHintType } from "@zxing/library";
 import { useEffect, useRef, useState } from "react";
 
 type Props = {
@@ -9,12 +10,12 @@ type Props = {
 
 export default function BarcodeScanner({ onDetected }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const hasDetectedRef = useRef(false);
+  const lastDetectionRef = useRef<{ value: string; at: number } | null>(null);
   const [error, setError] = useState("");
   const [torchEnabled, setTorchEnabled] = useState(false);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState("");
-  const [scanStatus, setScanStatus] = useState("Point camera at barcode/QR code.");
+  const [scanStatus, setScanStatus] = useState("Point camera at QR code.");
 
   const pickPreferredCamera = (cameras: MediaDeviceInfo[]) => {
     const rearCamera = cameras.find((device) =>
@@ -24,15 +25,20 @@ export default function BarcodeScanner({ onDetected }: Props) {
   };
 
   useEffect(() => {
-    const reader = new BrowserMultiFormatReader();
+    const hints = new Map();
+    hints.set(DecodeHintType.TRY_HARDER, true);
+    hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+      BarcodeFormat.QR_CODE
+    ]);
+    const reader = new BrowserMultiFormatReader(hints);
 
     let activeControls: { stop: () => void } | null = null;
 
     const start = async () => {
       try {
-        hasDetectedRef.current = false;
+        lastDetectionRef.current = null;
         setError("");
-        setScanStatus("Point camera at barcode/QR code.");
+        setScanStatus("Point camera at QR code.");
         const videoDevices = await BrowserMultiFormatReader.listVideoInputDevices();
         setDevices(videoDevices);
 
@@ -51,18 +57,36 @@ export default function BarcodeScanner({ onDetected }: Props) {
 
         if (!videoRef.current) return;
 
-        activeControls = await reader.decodeFromVideoDevice(
-          preferredDeviceId || undefined,
-          videoRef.current,
-          (result) => {
-            if (result && !hasDetectedRef.current) {
-              const value = result.getText();
-              hasDetectedRef.current = true;
-              setScanStatus(`Detected: ${value}`);
-              onDetected(value);
-            }
-          }
-        );
+        const constraints: MediaStreamConstraints = {
+          video: preferredDeviceId
+            ? {
+                deviceId: { exact: preferredDeviceId },
+                width: { ideal: 1920 },
+                height: { ideal: 1080 }
+              }
+            : {
+                facingMode: { ideal: "environment" },
+                width: { ideal: 1920 },
+                height: { ideal: 1080 }
+              }
+        };
+
+        activeControls = await reader.decodeFromConstraints(constraints, videoRef.current, (result) => {
+          if (result) {
+            const value = result.getText().trim();
+            if (!value) return;
+
+            const now = Date.now();
+            const last = lastDetectionRef.current;
+
+            // Ignore immediate duplicate reads from the same frame stream.
+            if (last && last.value === value && now - last.at < 1500) return;
+
+            lastDetectionRef.current = { value, at: now };
+            setScanStatus(`Detected: ${value}`);
+            onDetected(value);
+          } 
+        });
       } catch {
         setError("Hindi mabuksan ang camera. Please allow camera access.");
       }

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getGoatByBarcode } from "@/lib/sheets";
+import { getGoatByQrCode } from "@/lib/sheets";
 
-export async function GET(_: NextRequest, context: { params: { barcode: string } }) {
+export async function GET(_: NextRequest, context: { params: { qrCode: string } }) {
   try {
-    const barcode = decodeURIComponent(context.params.barcode);
-    const goat = await getGoatByBarcode(barcode);
+    const qrCode = decodeURIComponent(context.params.qrCode);
+    const goat = await getGoatByQrCode(qrCode);
 
     if (!goat) return NextResponse.json({ error: "Goat not found." }, { status: 404 });
 

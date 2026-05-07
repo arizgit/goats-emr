@@ -1,34 +1,52 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import BarcodeScanner from "@/components/BarcodeScanner";
 
 export default function ScanPage() {
-  const [status, setStatus] = useState("Align barcode/QR in camera view.");
+  const [status, setStatus] = useState("Align QR code in camera view.");
   const [notFoundValue, setNotFoundValue] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+  const inFlightLookupRef = useRef<string | null>(null);
   const router = useRouter();
 
   const onDetected = async (value: string) => {
-    setStatus(`Scanned: ${value}`);
-    const res = await fetch(`/api/goats/scan/${encodeURIComponent(value)}`);
-    const data = await res.json();
+    const normalized = value.trim();
+    if (!normalized) return;
+    if (inFlightLookupRef.current === normalized) return;
 
-    if (res.ok && data.goat?.ID) {
-      router.push(`/goats/${encodeURIComponent(data.goat.ID)}`);
-      return;
+    setIsSearching(true);
+    setNotFoundValue("");
+    setStatus(`Searching goat for: ${normalized}`);
+    inFlightLookupRef.current = normalized;
+
+    try {
+      const res = await fetch(`/api/goats/scan/${encodeURIComponent(normalized)}`);
+      const data = await res.json();
+
+      if (res.ok && data.goat?.ID) {
+        setStatus(`Found goat ${data.goat.ID}. Opening record...`);
+        router.push(`/goats/${encodeURIComponent(data.goat.ID)}`);
+        return;
+      }
+
+      setNotFoundValue(normalized);
+      setStatus(`No goat found for QR code: ${normalized}`);
+    } catch {
+      setStatus("Lookup failed. Please check connection and try scanning again.");
+    } finally {
+      setIsSearching(false);
+      inFlightLookupRef.current = null;
     }
-
-    setNotFoundValue(value);
-    setStatus("Goat not found.");
   };
 
   return (
     <section className="space-y-4">
-      <h2 className="text-xl font-bold text-farm-700">Scan Goat Ear Tag</h2>
+      <h2 className="text-xl font-bold text-farm-700">Scan Goat QR Tag</h2>
       <BarcodeScanner onDetected={onDetected} />
-      <p className="rounded-xl bg-white p-3 text-sm">{status}</p>
-      {notFoundValue && <button onClick={() => router.push(`/goats/new?barcode=${encodeURIComponent(notFoundValue)}`)} className="w-full rounded-xl bg-farm-700 px-4 py-3 font-semibold text-white">Create New Goat with this barcode</button>}
+      <p className="rounded-xl bg-white p-3 text-sm">{isSearching ? "Searching..." : status}</p>
+      {notFoundValue && <button onClick={() => router.push(`/goats/new?qrCode=${encodeURIComponent(notFoundValue)}`)} className="w-full rounded-xl bg-farm-700 px-4 py-3 font-semibold text-white">Create New Goat with this QR code</button>}
     </section>
   );
 }

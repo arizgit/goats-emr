@@ -3,8 +3,8 @@ import GoatForm from "@/components/GoatForm";
 export default function NewGoatPage({
   searchParams
 }: {
-  searchParams?: { barcode?: string };
+  searchParams?: { qrCode?: string };
 }) {
-  const barcode = searchParams?.barcode || "";
-  return <GoatForm mode="create" prefilledBarcode={barcode} />;
+  const qrCode = searchParams?.qrCode || "";
+  return <GoatForm mode="create" prefilledQrCode={qrCode} />;
 }
