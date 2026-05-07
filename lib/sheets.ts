@@ -34,16 +34,15 @@ function rowToGoat(row: string[]): Goat {
     "Farm ID": row[1] || "",
     Gender: (row[2] as Goat["Gender"]) || "",
     Birthdate: row[3] || "",
-    Description: row[4] || "",
+    Name: row[4] || "",
     Barcode: row[5] || "",
     "QR Code": row[6] || "",
     Image: row[7] || "",
     "Parent Buck": row[8] || "",
     "Parent Doe": row[9] || "",
-    State: (row[10] as Goat["State"]) || "",
-    Deceased: (row[11] as Goat["Deceased"]) || "",
-    Weight: row[12] || "",
-    Remarks: row[13] || ""
+    "Date Disposed": row[10] || "",
+    Weight: row[11] || "",
+    Remarks: row[12] || ""
   };
 }
 
@@ -53,14 +52,13 @@ function goatToRow(goat: Goat): string[] {
     goat["Farm ID"] || "",
     goat.Gender,
     goat.Birthdate,
-    goat.Description,
+    goat.Name,
     goat.Barcode,
     goat["QR Code"] || "",
     goat.Image,
     goat["Parent Buck"],
     goat["Parent Doe"],
-    goat.State,
-    goat.Deceased,
+    goat["Date Disposed"],
     goat.Weight,
     goat.Remarks
   ];
@@ -72,7 +70,7 @@ export async function getAllGoats() {
 
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId,
-    range: `${SHEET_NAME}!A:N`
+    range: `${SHEET_NAME}!A:M`
   });
 
   const rows = res.data.values || [];
@@ -88,7 +86,7 @@ export async function appendGoat(goat: Goat) {
 
   await sheets.spreadsheets.values.append({
     spreadsheetId,
-    range: `${SHEET_NAME}!A:N`,
+    range: `${SHEET_NAME}!A:M`,
     valueInputOption: "USER_ENTERED",
     requestBody: {
       values: [goatToRow(goat)]
@@ -108,7 +106,7 @@ export async function updateGoatById(id: string, goat: Goat) {
 
   await sheets.spreadsheets.values.update({
     spreadsheetId,
-    range: `${SHEET_NAME}!A${sheetRowNumber}:N${sheetRowNumber}`,
+    range: `${SHEET_NAME}!A${sheetRowNumber}:M${sheetRowNumber}`,
     valueInputOption: "USER_ENTERED",
     requestBody: {
       values: [goatToRow(goat)]
@@ -133,7 +131,7 @@ export async function validateHeaders() {
   const spreadsheetId = getSpreadsheetId();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId,
-    range: `${SHEET_NAME}!A1:N1`
+    range: `${SHEET_NAME}!A1:M1`
   });
 
   const headers = res.data.values?.[0] || [];

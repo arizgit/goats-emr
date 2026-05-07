@@ -16,7 +16,7 @@ npm install
 2. Rename the first sheet to `Goats`.
 3. Set row 1 headers in exact order:
 
-`ID | Gender | Birthdate | Description | Barcode | Image | Parent Buck | Parent Doe | State | Deceased | Weight | Remarks`
+`ID | Farm_ID | Gender | Birthdate | Name | Barcode | QR_Code | Image | Parent_Buck | Parent_Doe | Date_Disposed | Weight | Remarks`
 
 4. Copy the Spreadsheet ID from the URL (between `/d/` and `/edit`).
 

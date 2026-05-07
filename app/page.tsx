@@ -8,8 +8,7 @@ import { Goat } from "@/lib/types";
 export default function DashboardPage() {
   const [goats, setGoats] = useState<Goat[]>([]);
   const [search, setSearch] = useState("");
-  const [deceasedFilter, setDeceasedFilter] = useState<"all" | "alive" | "deceased">("all");
-  const [genderFilter, setGenderFilter] = useState<"all" | "Male" | "Female">("all");
+  const [genderFilter, setGenderFilter] = useState<"all" | "M" | "F">("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -34,26 +33,19 @@ export default function DashboardPage() {
   const filtered = useMemo(() => {
     const query = search.toLowerCase();
     return goats.filter((g) => {
-      const matchesSearch = [g.ID, g.Description, g.Barcode].some((v) => v.toLowerCase().includes(query));
-      const matchesDeceased =
-        deceasedFilter === "all" ||
-        (deceasedFilter === "alive" && g.Deceased !== "Y") ||
-        (deceasedFilter === "deceased" && g.Deceased === "Y");
+      const matchesSearch = [g.ID, g.Name, g.Barcode].some((v) => v.toLowerCase().includes(query));
       const matchesGender = genderFilter === "all" || g.Gender === genderFilter;
-      return matchesSearch && matchesDeceased && matchesGender;
+      return matchesSearch && matchesGender;
     });
-  }, [goats, search, deceasedFilter, genderFilter]);
+  }, [goats, search, genderFilter]);
 
   return (
     <section className="space-y-4">
       <h2 className="text-xl font-bold text-farm-700">Goat Records</h2>
-      <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by ID, description, barcode" className="w-full rounded-xl border border-farm-200 p-3" />
-      <div className="grid grid-cols-2 gap-2">
-        <select value={deceasedFilter} onChange={(e) => setDeceasedFilter(e.target.value as "all" | "alive" | "deceased")} className="rounded-xl border border-farm-200 p-3">
-          <option value="all">Show All</option><option value="alive">Alive Only</option><option value="deceased">Deceased Only</option>
-        </select>
-        <select value={genderFilter} onChange={(e) => setGenderFilter(e.target.value as "all" | "Male" | "Female")} className="rounded-xl border border-farm-200 p-3">
-          <option value="all">All Genders</option><option value="Male">Male</option><option value="Female">Female</option>
+      <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by ID, name, barcode" className="w-full rounded-xl border border-farm-200 p-3" />
+      <div className="grid grid-cols-1 gap-2">
+        <select value={genderFilter} onChange={(e) => setGenderFilter(e.target.value as "all" | "M" | "F")} className="rounded-xl border border-farm-200 p-3">
+          <option value="all">Lahat ng Kasarian</option><option value="M">Lalake</option><option value="F">Babae</option>
         </select>
       </div>
       {loading && <p className="rounded-xl bg-white p-4">Loading goats...</p>}

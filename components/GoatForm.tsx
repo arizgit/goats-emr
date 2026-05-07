@@ -17,14 +17,13 @@ const emptyGoat: Goat = {
   "Farm ID": "",
   Gender: "",
   Birthdate: "",
-  Description: "",
+  Name: "",
   Barcode: "",
   "QR Code": "",
   Image: "",
   "Parent Buck": "",
   "Parent Doe": "",
-  State: "",
-  Deceased: "N",
+  "Date Disposed": "",
   Weight: "",
   Remarks: ""
 };
@@ -40,6 +39,7 @@ export default function GoatForm({ initialValue, mode, prefilledBarcode }: Props
   const [showScanner, setShowScanner] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
   const [idLoading, setIdLoading] = useState(mode === "create");
+  const [allGoats, setAllGoats] = useState<Goat[]>([]);
 
   const title = useMemo(() => (mode === "create" ? "Add New Goat" : "Edit Goat"), [mode]);
 
@@ -91,6 +91,30 @@ export default function GoatForm({ initialValue, mode, prefilledBarcode }: Props
 
     void fetchNextId();
   }, [idLoading, mode]);
+
+  useEffect(() => {
+    const fetchGoats = async () => {
+      try {
+        const res = await fetch("/api/goats");
+        const json = (await res.json()) as { goats?: Goat[] };
+        if (!res.ok) return;
+        setAllGoats(json.goats || []);
+      } catch {
+        setAllGoats([]);
+      }
+    };
+
+    void fetchGoats();
+  }, []);
+
+  const parentOptions = useMemo(
+    () =>
+      allGoats.filter((item) => item.ID && item.ID !== goat.ID).map((item) => ({
+        value: item.ID,
+        label: `${item.ID}${item.Name ? ` - ${item.Name}` : ""}`
+      })),
+    [allGoats, goat.ID]
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,11 +171,11 @@ export default function GoatForm({ initialValue, mode, prefilledBarcode }: Props
       </label>
 
       <label className="block">
-        <span className="mb-1 block text-sm font-medium">Gender</span>
+        <span className="mb-1 block text-sm font-medium">Kasarian</span>
         <select value={goat.Gender} onChange={(e) => handleChange("Gender", e.target.value as Goat["Gender"])} className="w-full rounded-xl border border-farm-200 p-3 text-base">
-          <option value="">Select gender</option>
-          <option value="Male">Male</option>
-          <option value="Female">Female</option>
+          <option value="">Piliin ang kasarian</option>
+          <option value="M">Lalake</option>
+          <option value="F">Babae</option>
         </select>
       </label>
 
@@ -161,8 +185,8 @@ export default function GoatForm({ initialValue, mode, prefilledBarcode }: Props
       </label>
 
       <label className="block">
-        <span className="mb-1 block text-sm font-medium">Description</span>
-        <input value={goat.Description} onChange={(e) => handleChange("Description", e.target.value)} className="w-full rounded-xl border border-farm-200 p-3 text-base" />
+        <span className="mb-1 block text-sm font-medium">Name</span>
+        <input value={goat.Name} onChange={(e) => handleChange("Name", e.target.value)} className="w-full rounded-xl border border-farm-200 p-3 text-base" />
       </label>
 
       <div className="space-y-2">
@@ -205,30 +229,35 @@ export default function GoatForm({ initialValue, mode, prefilledBarcode }: Props
         )}
       </div>
 
-      <label className="block"><span className="mb-1 block text-sm font-medium">Parent Buck</span><input value={goat["Parent Buck"]} onChange={(e) => handleChange("Parent Buck", e.target.value)} className="w-full rounded-xl border border-farm-200 p-3 text-base" /></label>
-      <label className="block"><span className="mb-1 block text-sm font-medium">Parent Doe</span><input value={goat["Parent Doe"]} onChange={(e) => handleChange("Parent Doe", e.target.value)} className="w-full rounded-xl border border-farm-200 p-3 text-base" /></label>
-
       <label className="block">
-        <span className="mb-1 block text-sm font-medium">State</span>
-        <select value={goat.State} onChange={(e) => handleChange("State", e.target.value as Goat["State"])} className="w-full rounded-xl border border-farm-200 p-3 text-base">
-          <option value="">Select state</option>
-          <option value="Healthy">Healthy</option>
-          <option value="Sick">Sick</option>
-          <option value="Pregnant">Pregnant</option>
-          <option value="For Sale">For Sale</option>
-          <option value="Quarantine">Quarantine</option>
+        <span className="mb-1 block text-sm font-medium">Tty bulog</span>
+        <select value={goat["Parent Buck"]} onChange={(e) => handleChange("Parent Buck", e.target.value)} className="w-full rounded-xl border border-farm-200 p-3 text-base">
+          <option value="">Select goat</option>
+          {parentOptions.map((option) => (
+            <option key={`buck-${option.value}`} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="block">
+        <span className="mb-1 block text-sm font-medium">Nny doe</span>
+        <select value={goat["Parent Doe"]} onChange={(e) => handleChange("Parent Doe", e.target.value)} className="w-full rounded-xl border border-farm-200 p-3 text-base">
+          <option value="">Select goat</option>
+          {parentOptions.map((option) => (
+            <option key={`doe-${option.value}`} value={option.value}>
+              {option.label}
+            </option>
+          ))}
         </select>
       </label>
 
       <label className="block">
-        <span className="mb-1 block text-sm font-medium">Deceased</span>
-        <select value={goat.Deceased} onChange={(e) => handleChange("Deceased", e.target.value as Goat["Deceased"])} className="w-full rounded-xl border border-farm-200 p-3 text-base">
-          <option value="N">N</option>
-          <option value="Y">Y</option>
-        </select>
+        <span className="mb-1 block text-sm font-medium">Date Disposed</span>
+        <input type="date" value={goat["Date Disposed"]} onChange={(e) => handleChange("Date Disposed", e.target.value)} className="w-full rounded-xl border border-farm-200 p-3 text-base" />
       </label>
 
-      <label className="block"><span className="mb-1 block text-sm font-medium">Weight</span><input type="number" step="0.01" value={goat.Weight} onChange={(e) => handleChange("Weight", e.target.value)} className="w-full rounded-xl border border-farm-200 p-3 text-base" /></label>
+      <label className="block"><span className="mb-1 block text-sm font-medium">Weight (KG)</span><input type="number" step="0.01" value={goat.Weight} onChange={(e) => handleChange("Weight", e.target.value)} className="w-full rounded-xl border border-farm-200 p-3 text-base" /></label>
       <label className="block"><span className="mb-1 block text-sm font-medium">Remarks</span><textarea value={goat.Remarks} onChange={(e) => handleChange("Remarks", e.target.value)} className="w-full rounded-xl border border-farm-200 p-3 text-base" rows={4} /></label>
 
       {error && <p className="rounded-xl bg-red-100 p-3 text-sm text-red-700">{error}</p>}

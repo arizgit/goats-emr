@@ -31,32 +31,22 @@ export default function GoatDetailPage() {
     void fetchGoat();
   }, [id]);
 
-  const markDeceased = async () => {
-    if (!goat) return;
-    if (!window.confirm("Mark this goat as deceased?")) return;
-
-    const updated = { ...goat, Deceased: "Y" as const };
-    const res = await fetch(`/api/goats/${encodeURIComponent(id)}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updated)
-    });
-
-    if (res.ok) {
-      setGoat(updated);
-    }
-  };
-
   if (loading) return <p>Loading goat details...</p>;
   if (error) return <p className="rounded-xl bg-red-100 p-4 text-red-700">{error}</p>;
   if (!goat) return <p>Goat not found.</p>;
 
+  const labelMap: Record<string, string> = {
+    Name: "Name",
+    Gender: "Kasarian",
+    "Date Disposed": "Date Disposed",
+    Weight: "Weight (KG)",
+    "Parent Buck": "Tty bulog",
+    "Parent Doe": "Nny doe"
+  };
+
   return (
     <section className="space-y-4">
-      <div className="flex gap-2">
-        <button onClick={() => setEditMode((prev) => !prev)} className="flex-1 rounded-xl bg-farm-600 px-4 py-3 text-white">{editMode ? "Cancel Edit" : "Edit"}</button>
-        <button onClick={markDeceased} className="flex-1 rounded-xl bg-red-600 px-4 py-3 text-white">Mark as Deceased</button>
-      </div>
+      <button onClick={() => setEditMode((prev) => !prev)} className="w-full rounded-xl bg-farm-600 px-4 py-3 text-white">{editMode ? "Cancel Edit" : "Edit"}</button>
       {goat.Image && (
         <GoatImage
           src={goat.Image}
@@ -70,8 +60,10 @@ export default function GoatDetailPage() {
         <GoatForm mode="edit" initialValue={goat} />
       ) : (
         <div className="space-y-2 rounded-2xl bg-white p-4">
-          {Object.entries(goat).map(([key, value]) => (
-            <p key={key} className="text-sm"><span className="font-semibold">{key}:</span> {value || "-"}</p>
+          {Object.entries(goat)
+            .filter(([key]) => key !== "Farm ID")
+            .map(([key, value]) => (
+            <p key={key} className="text-sm"><span className="font-semibold">{labelMap[key] || key}:</span> {key === "Weight" && value ? `${value} KG` : key === "Gender" ? (value === "M" ? "Lalake" : value === "F" ? "Babae" : "-") : value || "-"}</p>
           ))}
         </div>
       )}
