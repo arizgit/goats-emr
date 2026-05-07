@@ -11,6 +11,15 @@ export default function BarcodeScanner({ onDetected }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [error, setError] = useState("");
   const [torchEnabled, setTorchEnabled] = useState(false);
+  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState("");
+
+  const pickPreferredCamera = (cameras: MediaDeviceInfo[]) => {
+    const rearCamera = cameras.find((device) =>
+      /(back|rear|environment|world)/i.test(device.label)
+    );
+    return rearCamera || cameras[cameras.length - 1] || cameras[0];
+  };
 
   useEffect(() => {
     const reader = new BrowserMultiFormatReader();
@@ -19,15 +28,28 @@ export default function BarcodeScanner({ onDetected }: Props) {
 
     const start = async () => {
       try {
-        const devices = await BrowserMultiFormatReader.listVideoInputDevices();
-        const deviceId = devices[0]?.deviceId;
+        const videoDevices = await BrowserMultiFormatReader.listVideoInputDevices();
+        setDevices(videoDevices);
+
+        const preferredDeviceId =
+          selectedDeviceId || pickPreferredCamera(videoDevices)?.deviceId || "";
+
+        if (!selectedDeviceId && preferredDeviceId) {
+          setSelectedDeviceId(preferredDeviceId);
+          return;
+        }
+
         if (!videoRef.current) return;
 
-        activeControls = await reader.decodeFromVideoDevice(deviceId, videoRef.current, (result) => {
-          if (result) {
-            onDetected(result.getText());
+        activeControls = await reader.decodeFromVideoDevice(
+          preferredDeviceId || undefined,
+          videoRef.current,
+          (result) => {
+            if (result) {
+              onDetected(result.getText());
+            }
           }
-        });
+        );
       } catch {
         setError("Hindi mabuksan ang camera. Please allow camera access.");
       }
@@ -38,7 +60,7 @@ export default function BarcodeScanner({ onDetected }: Props) {
     return () => {
       activeControls?.stop();
     };
-  }, [onDetected]);
+  }, [onDetected, selectedDeviceId]);
 
   const toggleTorch = async () => {
     const track = videoRef.current?.srcObject instanceof MediaStream
@@ -57,9 +79,25 @@ export default function BarcodeScanner({ onDetected }: Props) {
     }
   };
 
+  const switchCamera = () => {
+    if (devices.length <= 1) return;
+
+    const currentIndex = devices.findIndex((device) => device.deviceId === selectedDeviceId);
+    const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % devices.length;
+    setTorchEnabled(false);
+    setSelectedDeviceId(devices[nextIndex].deviceId);
+  };
+
   return (
     <div className="space-y-3">
       <video ref={videoRef} className="w-full rounded-2xl border border-farm-100 bg-black" />
+      <button
+        onClick={switchCamera}
+        disabled={devices.length <= 1}
+        className="w-full rounded-xl bg-farm-600 px-4 py-3 text-base font-semibold text-white disabled:opacity-60"
+      >
+        Switch Camera
+      </button>
       <button
         onClick={toggleTorch}
         className="w-full rounded-xl bg-farm-600 px-4 py-3 text-base font-semibold text-white"
