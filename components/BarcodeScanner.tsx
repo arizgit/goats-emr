@@ -9,10 +9,12 @@ type Props = {
 
 export default function BarcodeScanner({ onDetected }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const hasDetectedRef = useRef(false);
   const [error, setError] = useState("");
   const [torchEnabled, setTorchEnabled] = useState(false);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState("");
+  const [scanStatus, setScanStatus] = useState("Point camera at barcode/QR code.");
 
   const pickPreferredCamera = (cameras: MediaDeviceInfo[]) => {
     const rearCamera = cameras.find((device) =>
@@ -28,8 +30,16 @@ export default function BarcodeScanner({ onDetected }: Props) {
 
     const start = async () => {
       try {
+        hasDetectedRef.current = false;
+        setError("");
+        setScanStatus("Point camera at barcode/QR code.");
         const videoDevices = await BrowserMultiFormatReader.listVideoInputDevices();
         setDevices(videoDevices);
+
+        if (videoDevices.length === 0) {
+          setError("No camera device found.");
+          return;
+        }
 
         const preferredDeviceId =
           selectedDeviceId || pickPreferredCamera(videoDevices)?.deviceId || "";
@@ -45,8 +55,11 @@ export default function BarcodeScanner({ onDetected }: Props) {
           preferredDeviceId || undefined,
           videoRef.current,
           (result) => {
-            if (result) {
-              onDetected(result.getText());
+            if (result && !hasDetectedRef.current) {
+              const value = result.getText();
+              hasDetectedRef.current = true;
+              setScanStatus(`Detected: ${value}`);
+              onDetected(value);
             }
           }
         );
@@ -90,8 +103,15 @@ export default function BarcodeScanner({ onDetected }: Props) {
 
   return (
     <div className="space-y-3">
-      <video ref={videoRef} className="w-full rounded-2xl border border-farm-100 bg-black" />
+      <video
+        ref={videoRef}
+        autoPlay
+        muted
+        playsInline
+        className="w-full rounded-2xl border border-farm-100 bg-black"
+      />
       <button
+        type="button"
         onClick={switchCamera}
         disabled={devices.length <= 1}
         className="w-full rounded-xl bg-farm-600 px-4 py-3 text-base font-semibold text-white disabled:opacity-60"
@@ -99,11 +119,13 @@ export default function BarcodeScanner({ onDetected }: Props) {
         Switch Camera
       </button>
       <button
+        type="button"
         onClick={toggleTorch}
         className="w-full rounded-xl bg-farm-600 px-4 py-3 text-base font-semibold text-white"
       >
         {torchEnabled ? "Turn Torch Off" : "Turn Torch On"}
       </button>
+      <p className="rounded-lg bg-white p-3 text-sm">{scanStatus}</p>
       {error && <p className="rounded-lg bg-red-100 p-3 text-sm text-red-700">{error}</p>}
     </div>
   );
