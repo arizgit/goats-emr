@@ -2,9 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
-import { Goat } from "@/lib/types";
 import BarcodeScanner from "@/components/BarcodeScanner";
+import GoatImage from "@/components/GoatImage";
+import { Goat } from "@/lib/types";
 
 type Props = {
   initialValue?: Goat;
@@ -14,10 +14,12 @@ type Props = {
 
 const emptyGoat: Goat = {
   ID: "",
+  "Farm ID": "",
   Gender: "",
   Birthdate: "",
   Description: "",
   Barcode: "",
+  "QR Code": "",
   Image: "",
   "Parent Buck": "",
   "Parent Doe": "",
@@ -36,6 +38,7 @@ export default function GoatForm({ initialValue, mode, prefilledBarcode }: Props
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [showScanner, setShowScanner] = useState(false);
+  const [imageUploading, setImageUploading] = useState(false);
 
   const title = useMemo(() => (mode === "create" ? "Add New Goat" : "Edit Goat"), [mode]);
 
@@ -43,14 +46,30 @@ export default function GoatForm({ initialValue, mode, prefilledBarcode }: Props
     setGoat((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleImageUpload = (file?: File) => {
+  const handleImageUpload = async (file?: File) => {
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = typeof reader.result === "string" ? reader.result : "";
-      handleChange("Image", result);
-    };
-    reader.readAsDataURL(file);
+
+    setImageUploading(true);
+    setError("");
+
+    try {
+      const body = new FormData();
+      body.set("file", file);
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Upload failed.");
+
+      handleChange("Image", json.url as string);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Image upload failed.");
+    } finally {
+      setImageUploading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -139,14 +158,21 @@ export default function GoatForm({ initialValue, mode, prefilledBarcode }: Props
 
       <div className="space-y-2">
         <span className="block text-sm font-medium">Image</span>
-        <input type="file" accept="image/*" capture="environment" onChange={(e) => handleImageUpload(e.target.files?.[0])} className="w-full rounded-xl border border-farm-200 p-3 text-base" />
+        <input
+          type="file"
+          accept="image/*"
+          capture="environment"
+          disabled={imageUploading}
+          onChange={(e) => void handleImageUpload(e.target.files?.[0])}
+          className="w-full rounded-xl border border-farm-200 p-3 text-base disabled:opacity-60"
+        />
+        {imageUploading && <p className="text-sm text-farm-700">Uploading image…</p>}
         {goat.Image && (
-          <Image
+          <GoatImage
             src={goat.Image}
             alt="Goat"
             width={640}
             height={320}
-            unoptimized
             className="h-40 w-full rounded-xl object-cover"
           />
         )}
@@ -181,7 +207,7 @@ export default function GoatForm({ initialValue, mode, prefilledBarcode }: Props
       {error && <p className="rounded-xl bg-red-100 p-3 text-sm text-red-700">{error}</p>}
       {success && <p className="rounded-xl bg-farm-100 p-3 text-sm text-farm-700">{success}</p>}
 
-      <button type="submit" disabled={loading} className="w-full rounded-xl bg-farm-700 px-4 py-3 text-base font-bold text-white disabled:opacity-60">
+      <button type="submit" disabled={loading || imageUploading} className="w-full rounded-xl bg-farm-700 px-4 py-3 text-base font-bold text-white disabled:opacity-60">
         {loading ? "Saving..." : "Save"}
       </button>
     </form>

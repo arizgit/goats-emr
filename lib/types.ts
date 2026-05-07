@@ -1,9 +1,11 @@
 export type Goat = {
   ID: string;
+  "Farm ID": string;
   Gender: "Male" | "Female" | "";
   Birthdate: string;
   Description: string;
   Barcode: string;
+  "QR Code": string;
   Image: string;
   "Parent Buck": string;
   "Parent Doe": string;
@@ -14,16 +16,18 @@ export type Goat = {
 };
 
 export const GOAT_HEADERS = [
-  "ID",
-  "Gender",
-  "Birthdate",
-  "Description",
-  "Barcode",
-  "Image",
-  "Parent Buck",
-  "Parent Doe",
-  "State",
-  "Deceased",
-  "Weight",
-  "Remarks"
+  "id",
+  "farm_id",
+  "gender",
+  "birthdate",
+  "description",
+  "barcode",
+  "qr_code",
+  "image",
+  "parent_buck",
+  "parent_doe",
+  "state",
+  "deceased",
+  "weight",
+  "remarks"
 ] as const;

@@ -54,12 +54,23 @@ NEXTAUTH_URL=
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 ALLOWED_EMAILS=
+BLOB_READ_WRITE_TOKEN=
 ```
 
 ### Notes
 
 - `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` must preserve line breaks (or use escaped `\\n`).
 - `ALLOWED_EMAILS` is comma-separated, e.g. `juan@gmail.com,maria@gmail.com`
+
+## 5b) Vercel Blob (goat photos)
+
+Goat images are uploaded to [Vercel Blob](https://vercel.com/docs/storage/vercel-blob) and the **public HTTPS URL** is saved in the sheet `image` column (no base64 in cells).
+
+1. In the Vercel dashboard, open your project → **Storage** → **Create** → **Blob**.
+2. Link the Blob store to this project (Vercel can inject env vars automatically).
+3. For **local development**, copy the store’s **Read/Write** token into `.env.local` as `BLOB_READ_WRITE_TOKEN`.
+
+Without this token, signed-in users still load the app, but camera/file upload shows a clear configuration error from `/api/upload`.
 
 ## 6) Run locally
 
@@ -73,7 +84,8 @@ Open `http://localhost:3000`.
 
 1. Push code to GitHub.
 2. Import the repo in [Vercel](https://vercel.com/).
-3. Add all env vars from `.env.local` into Project Settings > Environment Variables.
-4. Deploy.
-5. Update `NEXTAUTH_URL` to your Vercel domain.
-6. Ensure Google OAuth redirect URI includes your Vercel callback URL.
+3. Create/link a **Blob** store for this project so `BLOB_READ_WRITE_TOKEN` is available (or paste the token manually).
+4. Add all env vars from `.env.local` into Project Settings > Environment Variables.
+5. Deploy.
+6. Update `NEXTAUTH_URL` to your Vercel domain.
+7. Ensure Google OAuth redirect URI includes your Vercel callback URL.

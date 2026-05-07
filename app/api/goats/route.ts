@@ -6,8 +6,13 @@ export async function GET() {
   try {
     const goats = await getAllGoats();
     return NextResponse.json({ goats });
-  } catch {
-    return NextResponse.json({ error: "Failed to fetch goats." }, { status: 500 });
+  } catch (error) {
+    console.error("GET /api/goats failed:", error);
+    const message =
+      process.env.NODE_ENV === "development" && error instanceof Error
+        ? error.message
+        : "Failed to fetch goats.";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -24,7 +29,12 @@ export async function POST(req: NextRequest) {
 
     await appendGoat(goat);
     return NextResponse.json({ ok: true });
-  } catch {
-    return NextResponse.json({ error: "Failed to add goat." }, { status: 500 });
+  } catch (error) {
+    console.error("POST /api/goats failed:", error);
+    const message =
+      process.env.NODE_ENV === "development" && error instanceof Error
+        ? error.message
+        : "Failed to add goat.";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

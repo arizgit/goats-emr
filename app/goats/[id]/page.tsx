@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import Image from "next/image";
 import GoatForm from "@/components/GoatForm";
+import GoatImage from "@/components/GoatImage";
 import { Goat } from "@/lib/types";
 
 export default function GoatDetailPage() {
@@ -58,12 +58,11 @@ export default function GoatDetailPage() {
         <button onClick={markDeceased} className="flex-1 rounded-xl bg-red-600 px-4 py-3 text-white">Mark as Deceased</button>
       </div>
       {goat.Image && (
-        <Image
+        <GoatImage
           src={goat.Image}
           alt={goat.ID}
           width={800}
           height={416}
-          unoptimized
           className="h-52 w-full rounded-2xl object-cover"
         />
       )}

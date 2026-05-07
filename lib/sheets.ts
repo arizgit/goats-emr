@@ -31,27 +31,31 @@ function getSpreadsheetId() {
 function rowToGoat(row: string[]): Goat {
   return {
     ID: row[0] || "",
-    Gender: (row[1] as Goat["Gender"]) || "",
-    Birthdate: row[2] || "",
-    Description: row[3] || "",
-    Barcode: row[4] || "",
-    Image: row[5] || "",
-    "Parent Buck": row[6] || "",
-    "Parent Doe": row[7] || "",
-    State: (row[8] as Goat["State"]) || "",
-    Deceased: (row[9] as Goat["Deceased"]) || "",
-    Weight: row[10] || "",
-    Remarks: row[11] || ""
+    "Farm ID": row[1] || "",
+    Gender: (row[2] as Goat["Gender"]) || "",
+    Birthdate: row[3] || "",
+    Description: row[4] || "",
+    Barcode: row[5] || "",
+    "QR Code": row[6] || "",
+    Image: row[7] || "",
+    "Parent Buck": row[8] || "",
+    "Parent Doe": row[9] || "",
+    State: (row[10] as Goat["State"]) || "",
+    Deceased: (row[11] as Goat["Deceased"]) || "",
+    Weight: row[12] || "",
+    Remarks: row[13] || ""
   };
 }
 
 function goatToRow(goat: Goat): string[] {
   return [
     goat.ID,
+    goat["Farm ID"] || "",
     goat.Gender,
     goat.Birthdate,
     goat.Description,
     goat.Barcode,
+    goat["QR Code"] || "",
     goat.Image,
     goat["Parent Buck"],
     goat["Parent Doe"],
@@ -68,7 +72,7 @@ export async function getAllGoats() {
 
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId,
-    range: `${SHEET_NAME}!A:L`
+    range: `${SHEET_NAME}!A:N`
   });
 
   const rows = res.data.values || [];
@@ -84,7 +88,7 @@ export async function appendGoat(goat: Goat) {
 
   await sheets.spreadsheets.values.append({
     spreadsheetId,
-    range: `${SHEET_NAME}!A:L`,
+    range: `${SHEET_NAME}!A:N`,
     valueInputOption: "USER_ENTERED",
     requestBody: {
       values: [goatToRow(goat)]
@@ -104,7 +108,7 @@ export async function updateGoatById(id: string, goat: Goat) {
 
   await sheets.spreadsheets.values.update({
     spreadsheetId,
-    range: `${SHEET_NAME}!A${sheetRowNumber}:L${sheetRowNumber}`,
+    range: `${SHEET_NAME}!A${sheetRowNumber}:N${sheetRowNumber}`,
     valueInputOption: "USER_ENTERED",
     requestBody: {
       values: [goatToRow(goat)]
@@ -129,9 +133,9 @@ export async function validateHeaders() {
   const spreadsheetId = getSpreadsheetId();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId,
-    range: `${SHEET_NAME}!A1:L1`
+    range: `${SHEET_NAME}!A1:N1`
   });
 
   const headers = res.data.values?.[0] || [];
-  return GOAT_HEADERS.every((h, i) => headers[i] === h);
+  return GOAT_HEADERS.every((h, i) => (headers[i] || "").trim().toLowerCase() === h.toLowerCase());
 }
