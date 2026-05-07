@@ -139,3 +139,17 @@ export async function validateHeaders() {
   const headers = res.data.values?.[0] || [];
   return GOAT_HEADERS.every((h, i) => (headers[i] || "").trim().toLowerCase() === h.toLowerCase());
 }
+
+export async function generateNextGoatId() {
+  const goats = await getAllGoats();
+  const maxNumericId = goats.reduce((max, goat) => {
+    const match = goat.ID.trim().match(/^G(\d+)$/i);
+    if (!match) return max;
+
+    const value = Number.parseInt(match[1], 10);
+    return Number.isFinite(value) ? Math.max(max, value) : max;
+  }, 0);
+
+  const next = maxNumericId + 1;
+  return `G${String(next).padStart(5, "0")}`;
+}

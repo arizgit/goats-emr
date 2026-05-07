@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import BarcodeScanner from "@/components/BarcodeScanner";
 import GoatImage from "@/components/GoatImage";
@@ -39,6 +39,7 @@ export default function GoatForm({ initialValue, mode, prefilledBarcode }: Props
   const [success, setSuccess] = useState("");
   const [showScanner, setShowScanner] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
+  const [idLoading, setIdLoading] = useState(mode === "create");
 
   const title = useMemo(() => (mode === "create" ? "Add New Goat" : "Edit Goat"), [mode]);
 
@@ -72,6 +73,25 @@ export default function GoatForm({ initialValue, mode, prefilledBarcode }: Props
     }
   };
 
+  useEffect(() => {
+    if (mode !== "create" || !idLoading) return;
+
+    const fetchNextId = async () => {
+      try {
+        const res = await fetch("/api/goats/next-id");
+        const json = (await res.json()) as { id?: string; error?: string };
+        if (!res.ok) throw new Error(json.error || "Failed to generate ID.");
+        handleChange("ID", json.id || "");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to generate ID.");
+      } finally {
+        setIdLoading(false);
+      }
+    };
+
+    void fetchNextId();
+  }, [idLoading, mode]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -100,6 +120,7 @@ export default function GoatForm({ initialValue, mode, prefilledBarcode }: Props
       setSuccess(mode === "create" ? "Goat added successfully." : "Goat updated successfully.");
       if (mode === "create") {
         setGoat(emptyGoat);
+        setIdLoading(true);
       } else {
         router.refresh();
       }
@@ -116,7 +137,13 @@ export default function GoatForm({ initialValue, mode, prefilledBarcode }: Props
 
       <label className="block">
         <span className="mb-1 block text-sm font-medium">ID</span>
-        <input value={goat.ID} onChange={(e) => handleChange("ID", e.target.value)} placeholder="Kambing ID" className="w-full rounded-xl border border-farm-200 p-3 text-base" />
+        <input
+          value={goat.ID}
+          onChange={(e) => handleChange("ID", e.target.value)}
+          placeholder={mode === "create" ? "Generating ID..." : "Kambing ID"}
+          readOnly={mode === "create"}
+          className="w-full rounded-xl border border-farm-200 p-3 text-base read-only:bg-farm-50"
+        />
       </label>
 
       <label className="block">
@@ -207,7 +234,7 @@ export default function GoatForm({ initialValue, mode, prefilledBarcode }: Props
       {error && <p className="rounded-xl bg-red-100 p-3 text-sm text-red-700">{error}</p>}
       {success && <p className="rounded-xl bg-farm-100 p-3 text-sm text-farm-700">{success}</p>}
 
-      <button type="submit" disabled={loading || imageUploading} className="w-full rounded-xl bg-farm-700 px-4 py-3 text-base font-bold text-white disabled:opacity-60">
+      <button type="submit" disabled={loading || imageUploading || idLoading} className="w-full rounded-xl bg-farm-700 px-4 py-3 text-base font-bold text-white disabled:opacity-60">
         {loading ? "Saving..." : "Save"}
       </button>
     </form>
