@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { appendGoat, generateNextGoatId, getAllGoats, validateHeaders } from "@/lib/sheets";
+import { appendGoat, appendWeightHistoryEntry, generateNextGoatId, getAllGoats, validateHeaders } from "@/lib/sheets";
 import { Goat } from "@/lib/types";
 
 export async function GET() {
@@ -19,6 +19,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const goat = (await req.json()) as Goat;
+    const now = new Date().toISOString();
 
     const headerValid = await validateHeaders();
     if (!headerValid) return NextResponse.json({ error: "Sheet headers do not match required format." }, { status: 400 });
@@ -30,7 +31,17 @@ export async function POST(req: NextRequest) {
     const goats = await getAllGoats();
     if (goats.some((g) => g.ID === goat.ID)) return NextResponse.json({ error: "Duplicate ID." }, { status: 400 });
 
+    goat["Created At"] = goat["Created At"] || now;
+    goat["Updated At"] = now;
+
     await appendGoat(goat);
+    if (goat.Weight?.trim()) {
+      await appendWeightHistoryEntry({
+        "Goat ID": goat.ID,
+        "Recorded At": now,
+        "Weight KG": goat.Weight
+      });
+    }
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("POST /api/goats failed:", error);

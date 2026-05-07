@@ -11,7 +11,16 @@ export type Goat = {
   "Parent Doe": string;
   "Date Disposed": string;
   Weight: string;
+  "Medical History": string;
   Remarks: string;
+  "Created At": string;
+  "Updated At": string;
+};
+
+export type WeightHistoryEntry = {
+  "Goat ID": string;
+  "Recorded At": string;
+  "Weight KG": string;
 };
 
 export const GOAT_HEADERS = [
@@ -22,10 +31,19 @@ export const GOAT_HEADERS = [
   "name",
   "barcode",
   "qr_code",
-  "image",
   "parent_buck",
   "parent_doe",
   "date_disposed",
   "weight",
-  "remarks"
+  "medical_history",
+  "remarks",
+  "created_at",
+  "updated_at",
+  "image"
+] as const;
+
+export const WEIGHT_HISTORY_HEADERS = [
+  "goat_id",
+  "recorded_at",
+  "weight_kg"
 ] as const;

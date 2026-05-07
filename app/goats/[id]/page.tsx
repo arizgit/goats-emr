@@ -1,10 +1,50 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import GoatForm from "@/components/GoatForm";
 import GoatImage from "@/components/GoatImage";
 import { Goat } from "@/lib/types";
+
+type MedicalHistoryEntry = {
+  id: string;
+  eventType: string;
+  dateGiven: string;
+  frequency: string;
+  nextDueDate: string;
+  notes: string;
+};
+
+type WeightHistoryEntry = {
+  "Goat ID": string;
+  "Recorded At": string;
+  "Weight KG": string;
+};
+
+function parseMedicalHistory(value: string): MedicalHistoryEntry[] {
+  if (!value?.trim()) return [];
+
+  try {
+    const parsed = JSON.parse(value) as MedicalHistoryEntry[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function formatDateTime(value: string): string {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("en-PH", {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
+}
 
 export default function GoatDetailPage() {
   const params = useParams<{ id: string }>();
@@ -13,6 +53,7 @@ export default function GoatDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [editMode, setEditMode] = useState(false);
+  const [weightHistory, setWeightHistory] = useState<WeightHistoryEntry[]>([]);
 
   useEffect(() => {
     const fetchGoat = async () => {
@@ -31,6 +72,21 @@ export default function GoatDetailPage() {
     void fetchGoat();
   }, [id]);
 
+  useEffect(() => {
+    const fetchWeightHistory = async () => {
+      try {
+        const res = await fetch(`/api/goats/${encodeURIComponent(id)}/weight-history`);
+        const data = (await res.json()) as { history?: WeightHistoryEntry[] };
+        if (!res.ok) return;
+        setWeightHistory(data.history || []);
+      } catch {
+        setWeightHistory([]);
+      }
+    };
+
+    void fetchWeightHistory();
+  }, [id]);
+
   if (loading) return <p>Loading goat details...</p>;
   if (error) return <p className="rounded-xl bg-red-100 p-4 text-red-700">{error}</p>;
   if (!goat) return <p>Goat not found.</p>;
@@ -41,7 +97,50 @@ export default function GoatDetailPage() {
     "Date Disposed": "Date Disposed",
     Weight: "Weight (KG)",
     "Parent Buck": "Tty bulog",
-    "Parent Doe": "Nny doe"
+    "Parent Doe": "Nny doe",
+    "Created At": "Created At",
+    "Updated At": "Last Modified"
+  };
+  const medicalHistory = parseMedicalHistory(goat["Medical History"]);
+  const eventTypeLabelMap: Record<string, string> = {
+    vaccine: "Vaccine",
+    deworm: "Deworm",
+    kapon: "Kapon",
+    gave_birth: "Gave Birth",
+    other: "Other"
+  };
+  const frequencyLabelMap: Record<string, string> = {
+    quarterly: "Quarterly",
+    semi_annual: "Semi-annual",
+    annual: "Annual",
+    none: "One-time / none"
+  };
+  const renderValue = (key: string, value: string) => {
+    if ((key === "Parent Buck" || key === "Parent Doe") && value) {
+      return (
+        <Link href={`/goats/${encodeURIComponent(value)}`} className="text-farm-700 underline">
+          {value}
+        </Link>
+      );
+    }
+
+    if (key === "Image" && value) {
+      return (
+        <a
+          href={value}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-farm-700 underline"
+        >
+          Open image
+        </a>
+      );
+    }
+
+    if (key === "Weight" && value) return `${value} KG`;
+    if (key === "Gender") return value === "M" ? "Lalake" : value === "F" ? "Babae" : "-";
+    if (key === "Created At" || key === "Updated At") return formatDateTime(value);
+    return value || "-";
   };
 
   return (
@@ -61,10 +160,45 @@ export default function GoatDetailPage() {
       ) : (
         <div className="space-y-2 rounded-2xl bg-white p-4">
           {Object.entries(goat)
-            .filter(([key]) => key !== "Farm ID")
+            .filter(([key]) => key !== "Farm ID" && key !== "Medical History" && key !== "QR Code")
             .map(([key, value]) => (
-            <p key={key} className="text-sm"><span className="font-semibold">{labelMap[key] || key}:</span> {key === "Weight" && value ? `${value} KG` : key === "Gender" ? (value === "M" ? "Lalake" : value === "F" ? "Babae" : "-") : value || "-"}</p>
+            <p key={key} className="text-sm">
+              <span className="font-semibold">{labelMap[key] || key}:</span>{" "}
+              {renderValue(key, value)}
+            </p>
           ))}
+          <div className="mt-4 space-y-2">
+            <p className="text-sm font-semibold">Medical History:</p>
+            {medicalHistory.length === 0 ? (
+              <p className="text-sm">-</p>
+            ) : (
+              medicalHistory.map((entry) => (
+                <div key={entry.id} className="rounded-xl border border-farm-100 p-3 text-sm">
+                  <p><span className="font-semibold">Type:</span> {eventTypeLabelMap[entry.eventType] || "Other"}</p>
+                  <p><span className="font-semibold">Date Given:</span> {entry.dateGiven || "-"}</p>
+                  <p><span className="font-semibold">Frequency:</span> {frequencyLabelMap[entry.frequency] || "One-time / none"}</p>
+                  <p><span className="font-semibold">Next Due:</span> {entry.nextDueDate || "-"}</p>
+                  <p><span className="font-semibold">Notes:</span> {entry.notes || "-"}</p>
+                </div>
+              ))
+            )}
+          </div>
+          <div className="mt-4 space-y-2">
+            <p className="text-sm font-semibold">Weight History:</p>
+            {weightHistory.length === 0 ? (
+              <p className="text-sm">-</p>
+            ) : (
+              weightHistory.map((entry) => (
+                <div
+                  key={`${entry["Goat ID"]}-${entry["Recorded At"]}-${entry["Weight KG"]}`}
+                  className="rounded-xl border border-farm-100 p-3 text-sm"
+                >
+                  <p><span className="font-semibold">Weight:</span> {entry["Weight KG"] ? `${entry["Weight KG"]} KG` : "-"}</p>
+                  <p><span className="font-semibold">Recorded At:</span> {formatDateTime(entry["Recorded At"])}</p>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       )}
     </section>

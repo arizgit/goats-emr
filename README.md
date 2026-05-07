@@ -14,11 +14,15 @@ npm install
 
 1. Create a Google Spreadsheet.
 2. Rename the first sheet to `Goats`.
-3. Set row 1 headers in exact order:
+3. Set row 1 headers for `Goats` in exact order:
 
-`ID | Farm_ID | Gender | Birthdate | Name | Barcode | QR_Code | Image | Parent_Buck | Parent_Doe | Date_Disposed | Weight | Remarks`
+`ID | Farm_ID | Gender | Birthdate | Name | Barcode | QR_Code | Parent_Buck | Parent_Doe | Date_Disposed | Weight | Medical_History | Remarks | Created_At | Updated_At | Image`
 
-4. Copy the Spreadsheet ID from the URL (between `/d/` and `/edit`).
+4. Create a second sheet named `Goat_Weight_History` with row 1 headers:
+
+`Goat_ID | Recorded_At | Weight_KG`
+
+5. Copy the Spreadsheet ID from the URL (between `/d/` and `/edit`).
 
 ## 3) Set up Google Sheets API service account
 
