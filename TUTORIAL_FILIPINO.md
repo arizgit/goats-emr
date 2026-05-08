@@ -1,0 +1,140 @@
+# GoatsEMR User Tutorial (Filipino/Tagalog)
+
+Ang gabay na ito ay para sa farm staff na gagamit ng GoatsEMR sa mobile o desktop.
+
+## 1. Pag-login
+
+1. Buksan ang GoatsEMR web app sa browser.
+2. Mag-sign in gamit ang allowed na Google account.
+3. Pagkatapos mag-login, makikita ang main navigation:
+   - `Dashboard`
+   - `Scan QR`
+   - `Add Goat`
+
+## 2. Dashboard (Listahan ng Mga Kambing)
+
+Ang `Dashboard` ang pangunahing listahan ng goat records.
+
+- Gamitin ang **Search by ID or name** para mabilis maghanap.
+- Gamitin ang **Gender filter**:
+  - `Lahat ng Kasarian`
+  - `Lalake`
+  - `Babae`
+- I-tap/i-click ang goat card para buksan ang detalye ng kambing.
+- Pindutin ang floating `+` button para mabilis magdagdag ng bagong record.
+
+## 3. Scan QR (Hanapin ang Kambing gamit ang QR Tag)
+
+Pumunta sa `Scan QR` para gamitin ang camera scanner.
+
+1. I-allow ang camera permission kapag may prompt.
+2. Itutok ang camera sa QR tag ng kambing.
+3. Optional controls:
+   - `Switch Camera` (front/back o ibang camera)
+   - `Turn Torch On/Off` kung madilim
+4. Kapag may tugmang QR code:
+   - Awtomatikong bubukas ang goat record.
+5. Kapag walang nahanap na goat:
+   - Lalabas ang button na `Create New Goat with this QR code`
+   - Pindutin ito para magbukas ng Add Goat form na naka-prefill ang QR.
+
+## 4. Add Goat (Gumawa ng Bagong Record)
+
+Pumunta sa `Add Goat` para magrehistro ng bagong kambing.
+
+### Karaniwang fields na dapat punan
+
+- `ID` ay auto-generated.
+- `Kasarian` (Male/Female)
+- `Birthdate`
+- `Name`
+- `QR Code` (manual o scan)
+- `Weight (KG)`
+- `Remarks`
+
+### Optional fields
+
+- `Image` (upload o capture gamit camera)
+- `Tty bulog` (Parent Buck)
+- `Nny doe` (Parent Doe)
+- `Date Disposed`
+
+### Medical History section
+
+1. Pindutin ang `+ Add Update`.
+2. Punan ang:
+   - Event Type (`Vaccine`, `Deworm`, `Kapon`, `Gave Birth` para sa female, `Other`)
+   - Date Given
+   - Frequency (`One-time / none`, `Quarterly`, `Semi-annual`, `Annual`)
+   - Next Due Date (auto-calculated pero puwedeng i-edit)
+   - Notes
+3. Ulitin para sa iba pang medical entries.
+4. Pindutin ang `Save`.
+
+### Pag-scan ng QR sa loob ng Add Goat form
+
+- Pindutin ang `Scan QR Code`.
+- I-scan ang QR tag.
+- Awtomatikong malalagay sa QR Code field ang value.
+- Sa create mode, siguraduhing i-tap ang `Save` para ma-store ang record.
+
+## 5. Goat Detail Page (Buong Impormasyon ng Kambing)
+
+Kapag binuksan ang goat record mula Dashboard o QR scan, makikita mo ang:
+
+- Basic details (Name, Gender, Weight, atbp.)
+- Parent links (puwedeng pindutin para buksan ang record ng magulang)
+- Image preview at image link
+- Medical History list
+- Weight History entries
+- Created/Updated timestamps
+
+## 6. Pag-edit ng Existing Record
+
+1. Buksan ang goat detail page.
+2. Pindutin ang `Edit`.
+3. I-update ang kinakailangang fields.
+4. Pindutin ang `Save`.
+
+Mga paalala:
+- Kapag nag-scan ng QR habang edit mode, auto-save ang bagong QR code.
+- Pindutin ang `Cancel Edit` para bumalik sa read-only view.
+
+## 7. Paano Gumagana ang Weight History
+
+- Ang kasalukuyang timbang ay nasa `Weight (KG)` field.
+- Ang dating timbang ay makikita sa detail page sa ilalim ng `Weight History`.
+- Bawat entry ay may weight value at oras/petsa ng pagka-record.
+
+## 8. Best Practices para sa Farm Staff
+
+- Laging i-check ang tamang goat ID bago mag-save.
+- Mas mainam ang QR scan kaysa manual typing kung posible.
+- Panatilihing kumpleto at consistent ang medical updates.
+- Mag-upload ng malinaw na larawan para madaling makilala ang kambing.
+- Gamitin ang remarks para sa mahahalagang notes (sakit, treatment, transfer).
+
+## 9. Troubleshooting
+
+- **Ayaw magbukas ng camera**
+  - I-check kung allowed ang camera permission sa browser.
+  - Subukan ang `Switch Camera`.
+  - I-reload ang page.
+- **Hindi ma-detect ang QR**
+  - Dagdagan ang ilaw o i-on ang torch.
+  - Ilapit/ilayo ang camera hanggang luminaw ang focus.
+  - Siguraduhing hindi sira ang QR print.
+- **Walang goat na makita pagkatapos mag-scan**
+  - I-verify ang QR value.
+  - Gamitin ang create button para mag-register ng bagong goat gamit ang QR na iyon.
+- **Failed ang image upload**
+  - I-check ang internet connection.
+  - Subukan ulit gamit mas maliit o mas malinaw na image.
+
+## 10. Rekomendadong Daily Workflow
+
+1. Buksan ang `Dashboard` at i-check ang listahan.
+2. Gamitin ang `Scan QR` habang umiikot sa farm.
+3. I-update ang medical events at timbang kung kinakailangan.
+4. I-save agad ang bawat pagbabago.
+5. I-review ang records bago matapos ang araw.

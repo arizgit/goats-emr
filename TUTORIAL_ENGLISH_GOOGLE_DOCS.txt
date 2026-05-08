@@ -1,0 +1,138 @@
+GoatsEMR User Tutorial (English)
+
+This guide explains how farm staff can use the GoatsEMR web app on mobile or desktop.
+
+1) Sign In
+
+1. Open the GoatsEMR web app URL in your browser.
+2. Sign in using an allowed Google account.
+3. After login, you will see the main navigation:
+   Dashboard
+   Scan QR
+   Add Goat
+
+2) Dashboard (View All Goat Records)
+
+The Dashboard is the main list of goats.
+
+- Use Search by ID or name to quickly find a goat.
+- Use the Gender filter:
+  Lahat ng Kasarian (All)
+  Lalake (Male)
+  Babae (Female)
+- Tap or click any goat card to open that goat's detail page.
+- Use the floating + button to add a new goat quickly.
+
+3) Scan QR (Find a Goat by QR Tag)
+
+Go to Scan QR to use the camera scanner.
+
+1. Allow camera permission when prompted.
+2. Point the camera at the goat's QR tag.
+3. Optional controls:
+   Switch Camera (front/back or another camera)
+   Turn Torch On/Off for low-light scanning
+4. If QR code exists:
+   The app opens the goat record automatically.
+5. If QR code is not found:
+   You will see a button: Create New Goat with this QR code
+   Tap it to open the Add Goat form with QR pre-filled.
+
+4) Add Goat (Create a New Record)
+
+Go to Add Goat to register a new goat.
+
+Required and common fields:
+- ID (auto-generated)
+- Kasarian (Gender): Male/Female
+- Birthdate
+- Name
+- QR Code (manual entry or scan)
+- Weight (KG)
+- Remarks
+
+Optional fields:
+- Image (upload or capture from device camera)
+- Tty bulog (Parent Buck)
+- Nny doe (Parent Doe)
+- Date Disposed
+
+Medical History section:
+1. Tap + Add Update.
+2. Fill in:
+   Event Type (Vaccine, Deworm, Kapon, Gave Birth for females, Other)
+   Date Given
+   Frequency (One-time / none, Quarterly, Semi-annual, Annual)
+   Next Due Date (auto-calculated, editable)
+   Notes
+3. Repeat for additional medical entries.
+4. Tap Save.
+
+QR scan inside Add Goat:
+- Tap Scan QR Code in the form.
+- Scan the QR tag.
+- The value is captured in the QR Code field.
+- In create mode, remember to tap Save to store the record.
+
+5) Goat Detail Page (View Full Record)
+
+When you open a goat from Dashboard or QR scan, you can view:
+- Basic details (Name, Gender, Weight, etc.)
+- Parent links (tap parent IDs to open their records)
+- Image preview and image link
+- Medical History list
+- Weight History entries
+- Created/Updated timestamps
+
+6) Edit Existing Goat Record
+
+1. Open a goat detail page.
+2. Tap Edit.
+3. Update any needed fields.
+4. Tap Save.
+
+Notes:
+- If you scan a QR while in edit mode, it auto-saves the new QR code.
+- Tap Cancel Edit to go back to read-only view.
+
+7) Weight History Behavior
+
+- Current weight is set in the Weight (KG) field.
+- Historical weights appear on the detail page under Weight History.
+- Each entry shows the recorded weight and timestamp.
+
+8) Best Practices for Staff
+
+- Always verify you are editing the correct goat ID before saving.
+- Scan QR instead of manual typing when possible.
+- Keep medical updates consistent (date and frequency).
+- Upload a clear goat image for easier identification.
+- Use remarks for special notes (illness, transfer, treatment status).
+
+9) Troubleshooting
+
+Camera not opening:
+- Confirm browser camera permission is allowed.
+- Try Switch Camera.
+- Reload the page.
+
+QR not detected:
+- Improve lighting or turn torch on.
+- Move camera closer/farther until focus is clear.
+- Ensure QR print is not damaged.
+
+No goat found after scan:
+- Verify QR value is correct.
+- Use the create button to register a new goat with that QR.
+
+Image upload fails:
+- Check internet connection.
+- Try again with a smaller or clearer image.
+
+10) Quick Daily Workflow (Recommended)
+
+1. Open Dashboard and search/check goat list.
+2. Use Scan QR during farm inspection.
+3. Update medical events and weight as needed.
+4. Save changes immediately after each goat.
+5. Review records before ending the day.
