@@ -5,3 +5,17 @@
 body {
   @apply bg-farm-50 text-slate-900;
 }
+
+@media print {
+  body.qr-print-page header {
+    display: none !important;
+  }
+
+  body.qr-print-page main {
+    padding: 0 !important;
+  }
+
+  body.qr-print-page {
+    background: white !important;
+  }
+}

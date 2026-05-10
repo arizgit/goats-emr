@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import BarcodeScanner from "@/components/BarcodeScanner";
+import GoatIdQrBlock from "@/components/GoatIdQrBlock";
 import GoatImage from "@/components/GoatImage";
 import { Goat } from "@/lib/types";
 
@@ -106,6 +107,10 @@ export default function GoatForm({ initialValue, mode, prefilledQrCode }: Props)
   );
 
   const title = useMemo(() => (mode === "create" ? "Add New Goat" : "Edit Goat"), [mode]);
+
+  const qrEncodedValue = goat["QR Code"].trim() || goat.ID.trim();
+  const qrFieldMatchesId =
+    Boolean(goat.ID.trim()) && goat["QR Code"].trim() === goat.ID.trim();
 
   const handleChange = (key: keyof Goat, value: string) => {
     setGoat((prev) => ({ ...prev, [key]: value }));
@@ -332,6 +337,15 @@ export default function GoatForm({ initialValue, mode, prefilledQrCode }: Props)
           className="w-full rounded-xl border border-farm-200 p-3 text-base read-only:bg-farm-50"
         />
       </label>
+
+      {!idLoading && goat.ID.trim() && (
+        <GoatIdQrBlock
+          encodedValue={qrEncodedValue}
+          displayLabel={goat.Name || undefined}
+          qrFieldMatchesId={qrFieldMatchesId}
+          onSyncQrFieldToId={() => handleChange("QR Code", goat.ID)}
+        />
+      )}
 
       <label className="block">
         <span className="mb-1 block text-sm font-medium">Kasarian</span>
