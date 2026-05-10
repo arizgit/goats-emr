@@ -1,5 +1,8 @@
 /** @type {import("next").NextConfig} */
 const nextConfig = {
+  experimental: {
+    serverComponentsExternalPackages: ["googleapis", "gaxios"]
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "**" },
