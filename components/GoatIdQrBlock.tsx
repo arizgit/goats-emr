@@ -6,16 +6,9 @@ import { useMemo, useState } from "react";
 type Props = {
   encodedValue: string;
   displayLabel?: string;
-  qrFieldMatchesId: boolean;
-  onSyncQrFieldToId: () => void;
 };
 
-export default function GoatIdQrBlock({
-  encodedValue,
-  displayLabel,
-  qrFieldMatchesId,
-  onSyncQrFieldToId
-}: Props) {
+export default function GoatIdQrBlock({ encodedValue, displayLabel }: Props) {
   const [largeOpen, setLargeOpen] = useState(false);
 
   const previewUrl = useMemo(() => {
@@ -42,22 +35,14 @@ export default function GoatIdQrBlock({
       <div className="rounded-xl border border-farm-200 bg-white p-4 shadow-sm">
         <p className="mb-1 text-sm font-medium text-farm-700">ID tag QR</p>
         <p className="mb-3 text-xs text-slate-600">
-          The scanner matches the <span className="font-medium">QR Code</span> field. Use the button below so this tag
-          uses the same value as the goat ID for lookup.
+          Print and attach this tag. Scanning matches your goat ID (the same value is stored in the sheet QR column when
+          you save).
         </p>
         <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
           <div className="rounded-lg border border-farm-100 bg-farm-50 p-2">
             <QRCode value={encodedValue} size={128} level="M" />
           </div>
           <div className="flex w-full flex-col gap-2">
-            <button
-              type="button"
-              onClick={onSyncQrFieldToId}
-              disabled={qrFieldMatchesId}
-              className="rounded-xl border border-farm-600 bg-white px-4 py-2 text-sm font-semibold text-farm-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Use ID as scan value
-            </button>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               <button
                 type="button"

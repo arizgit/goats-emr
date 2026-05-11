@@ -135,7 +135,11 @@ export async function getGoatById(id: string) {
 
 export async function getGoatByQrCode(qrCode: string) {
   const goats = await getAllGoats();
-  return goats.find((goat) => goat["QR Code"] === qrCode) || null;
+  return (
+    goats.find((goat) => goat["QR Code"] === qrCode) ||
+    goats.find((goat) => goat.ID === qrCode) ||
+    null
+  );
 }
 
 export async function validateHeaders() {

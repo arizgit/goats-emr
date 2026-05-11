@@ -46,7 +46,15 @@ export default function ScanPage() {
       <h2 className="text-xl font-bold text-farm-700">Scan Goat QR Tag</h2>
       <BarcodeScanner onDetected={onDetected} />
       <p className="rounded-xl bg-white p-3 text-sm">{isSearching ? "Searching..." : status}</p>
-      {notFoundValue && <button onClick={() => router.push(`/goats/new?qrCode=${encodeURIComponent(notFoundValue)}`)} className="w-full rounded-xl bg-farm-700 px-4 py-3 font-semibold text-white">Create New Goat with this QR code</button>}
+      {notFoundValue && (
+        <button
+          type="button"
+          onClick={() => router.push("/goats/new")}
+          className="w-full rounded-xl bg-farm-700 px-4 py-3 font-semibold text-white"
+        >
+          Create new goat
+        </button>
+      )}
     </section>
   );
 }

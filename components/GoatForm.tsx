@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import BarcodeScanner from "@/components/BarcodeScanner";
 import GoatIdQrBlock from "@/components/GoatIdQrBlock";
 import GoatImage from "@/components/GoatImage";
 import { Goat } from "@/lib/types";
@@ -10,7 +9,6 @@ import { Goat } from "@/lib/types";
 type Props = {
   initialValue?: Goat;
   mode: "create" | "edit";
-  prefilledQrCode?: string;
 };
 
 type MedFrequency = "quarterly" | "semi_annual" | "annual" | "none";
@@ -89,16 +87,12 @@ const emptyGoat: Goat = {
   "Updated At": ""
 };
 
-export default function GoatForm({ initialValue, mode, prefilledQrCode }: Props) {
+export default function GoatForm({ initialValue, mode }: Props) {
   const router = useRouter();
-  const [goat, setGoat] = useState<Goat>(
-    initialValue || { ...emptyGoat, "QR Code": prefilledQrCode || "" }
-  );
+  const [goat, setGoat] = useState<Goat>(initialValue || emptyGoat);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [qrScanStatus, setQrScanStatus] = useState("");
-  const [showScanner, setShowScanner] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
   const [idLoading, setIdLoading] = useState(mode === "create");
   const [allGoats, setAllGoats] = useState<Goat[]>([]);
@@ -107,10 +101,6 @@ export default function GoatForm({ initialValue, mode, prefilledQrCode }: Props)
   );
 
   const title = useMemo(() => (mode === "create" ? "Add New Goat" : "Edit Goat"), [mode]);
-
-  const qrEncodedValue = goat["QR Code"].trim() || goat.ID.trim();
-  const qrFieldMatchesId =
-    Boolean(goat.ID.trim()) && goat["QR Code"].trim() === goat.ID.trim();
 
   const handleChange = (key: keyof Goat, value: string) => {
     setGoat((prev) => ({ ...prev, [key]: value }));
@@ -242,6 +232,7 @@ export default function GoatForm({ initialValue, mode, prefilledQrCode }: Props)
     try {
       const normalizedGoat: Goat = {
         ...goat,
+        "QR Code": goat.ID.trim(),
         "Medical History": JSON.stringify(medicalHistory),
         Name: goat.Name
           ? `${goat.Name.trim().charAt(0).toUpperCase()}${goat.Name.trim().slice(1)}`
@@ -275,54 +266,6 @@ export default function GoatForm({ initialValue, mode, prefilledQrCode }: Props)
     }
   };
 
-  const handleQrDetected = async (value: string) => {
-    const detectedValue = value.trim();
-    if (!detectedValue) return;
-
-    setQrScanStatus(`Detected QR code: ${detectedValue}`);
-    const updatedGoat = { ...goat, "QR Code": detectedValue };
-    setGoat(updatedGoat);
-
-    // Create mode keeps manual save flow; edit mode auto-saves to avoid missed updates.
-    if (mode !== "edit") {
-      setSuccess("QR code captured. Tap Save to persist.");
-      setShowScanner(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError("");
-      setSuccess("");
-
-      const normalizedGoat: Goat = {
-        ...updatedGoat,
-        "Medical History": JSON.stringify(medicalHistory),
-        Name: updatedGoat.Name
-          ? `${updatedGoat.Name.trim().charAt(0).toUpperCase()}${updatedGoat.Name.trim().slice(1)}`
-          : ""
-      };
-
-      const endpoint = `/api/goats/${encodeURIComponent(initialValue?.ID || updatedGoat.ID)}`;
-      const res = await fetch(endpoint, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(normalizedGoat)
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Request failed.");
-
-      setSuccess("QR code scanned and saved.");
-      setGoat(normalizedGoat);
-      setShowScanner(false);
-      router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save scanned QR code.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <h2 className="text-xl font-bold text-farm-700">{title}</h2>
@@ -339,12 +282,7 @@ export default function GoatForm({ initialValue, mode, prefilledQrCode }: Props)
       </label>
 
       {!idLoading && goat.ID.trim() && (
-        <GoatIdQrBlock
-          encodedValue={qrEncodedValue}
-          displayLabel={goat.Name || undefined}
-          qrFieldMatchesId={qrFieldMatchesId}
-          onSyncQrFieldToId={() => handleChange("QR Code", goat.ID)}
-        />
+        <GoatIdQrBlock encodedValue={goat.ID.trim()} displayLabel={goat.Name || undefined} />
       )}
 
       <label className="block">
@@ -365,22 +303,6 @@ export default function GoatForm({ initialValue, mode, prefilledQrCode }: Props)
         <span className="mb-1 block text-sm font-medium">Name</span>
         <input value={goat.Name} onChange={(e) => handleChange("Name", e.target.value)} className="w-full rounded-xl border border-farm-200 p-3 text-base" />
       </label>
-
-      <div className="space-y-2">
-        <label className="block">
-          <span className="mb-1 block text-sm font-medium">QR Code</span>
-          <input value={goat["QR Code"]} onChange={(e) => handleChange("QR Code", e.target.value)} className="w-full rounded-xl border border-farm-200 p-3 text-base" />
-        </label>
-        <button type="button" onClick={() => setShowScanner((prev) => !prev)} className="w-full rounded-xl bg-farm-600 px-4 py-3 text-base font-semibold text-white">
-          {showScanner ? "Hide Scanner" : "Scan QR Code"}
-        </button>
-        {qrScanStatus && <p className="rounded-lg bg-white p-3 text-sm">{qrScanStatus}</p>}
-        {showScanner && (
-          <BarcodeScanner
-            onDetected={(value) => void handleQrDetected(value)}
-          />
-        )}
-      </div>
 
       <div className="space-y-2">
         <span className="block text-sm font-medium">Image</span>
