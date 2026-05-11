@@ -149,13 +149,15 @@ export default function GoatDetailPage() {
     <section className="space-y-4">
       <button onClick={() => setEditMode((prev) => !prev)} className="w-full rounded-xl bg-farm-600 px-4 py-3 text-white">{editMode ? "Cancel Edit" : "Edit"}</button>
       {goat.Image && (
-        <GoatImage
-          src={goat.Image}
-          alt={goat.ID}
-          width={800}
-          height={416}
-          className="h-52 w-full rounded-2xl object-cover"
-        />
+        <div className="flex justify-center">
+          <GoatImage
+            src={goat.Image}
+            alt={goat.ID}
+            width={512}
+            height={512}
+            className="aspect-square w-full max-w-[min(100%,20rem)] rounded-2xl object-cover shadow-sm"
+          />
+        </div>
       )}
       {editMode ? (
         <GoatForm mode="edit" initialValue={goat} />
