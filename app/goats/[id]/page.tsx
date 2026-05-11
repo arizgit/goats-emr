@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import GoatForm from "@/components/GoatForm";
+import GoatIdQrBlock from "@/components/GoatIdQrBlock";
 import GoatImage from "@/components/GoatImage";
 import { Goat } from "@/lib/types";
 
@@ -102,6 +103,7 @@ export default function GoatDetailPage() {
     "Updated At": "Last Modified"
   };
   const medicalHistory = parseMedicalHistory(goat["Medical History"]);
+  const qrEncoded = goat["QR Code"]?.trim() || goat.ID.trim();
   const eventTypeLabelMap: Record<string, string> = {
     vaccine: "Vaccine",
     deworm: "Deworm",
@@ -158,48 +160,53 @@ export default function GoatDetailPage() {
       {editMode ? (
         <GoatForm mode="edit" initialValue={goat} />
       ) : (
-        <div className="space-y-2 rounded-2xl bg-white p-4">
-          {Object.entries(goat)
-            .filter(([key]) => key !== "Farm ID" && key !== "Medical History" && key !== "QR Code")
-            .map(([key, value]) => (
-            <p key={key} className="text-sm">
-              <span className="font-semibold">{labelMap[key] || key}:</span>{" "}
-              {renderValue(key, value)}
-            </p>
-          ))}
-          <div className="mt-4 space-y-2">
-            <p className="text-sm font-semibold">Medical History:</p>
-            {medicalHistory.length === 0 ? (
-              <p className="text-sm">-</p>
-            ) : (
-              medicalHistory.map((entry) => (
-                <div key={entry.id} className="rounded-xl border border-farm-100 p-3 text-sm">
-                  <p><span className="font-semibold">Type:</span> {eventTypeLabelMap[entry.eventType] || "Other"}</p>
-                  <p><span className="font-semibold">Date Given:</span> {entry.dateGiven || "-"}</p>
-                  <p><span className="font-semibold">Frequency:</span> {frequencyLabelMap[entry.frequency] || "One-time / none"}</p>
-                  <p><span className="font-semibold">Next Due:</span> {entry.nextDueDate || "-"}</p>
-                  <p><span className="font-semibold">Notes:</span> {entry.notes || "-"}</p>
-                </div>
-              ))
-            )}
+        <>
+          {qrEncoded ? (
+            <GoatIdQrBlock encodedValue={qrEncoded} displayLabel={goat.Name || undefined} />
+          ) : null}
+          <div className="space-y-2 rounded-2xl bg-white p-4">
+            {Object.entries(goat)
+              .filter(([key]) => key !== "Farm ID" && key !== "Medical History" && key !== "QR Code")
+              .map(([key, value]) => (
+                <p key={key} className="text-sm">
+                  <span className="font-semibold">{labelMap[key] || key}:</span>{" "}
+                  {renderValue(key, value)}
+                </p>
+              ))}
+            <div className="mt-4 space-y-2">
+              <p className="text-sm font-semibold">Medical History:</p>
+              {medicalHistory.length === 0 ? (
+                <p className="text-sm">-</p>
+              ) : (
+                medicalHistory.map((entry) => (
+                  <div key={entry.id} className="rounded-xl border border-farm-100 p-3 text-sm">
+                    <p><span className="font-semibold">Type:</span> {eventTypeLabelMap[entry.eventType] || "Other"}</p>
+                    <p><span className="font-semibold">Date Given:</span> {entry.dateGiven || "-"}</p>
+                    <p><span className="font-semibold">Frequency:</span> {frequencyLabelMap[entry.frequency] || "One-time / none"}</p>
+                    <p><span className="font-semibold">Next Due:</span> {entry.nextDueDate || "-"}</p>
+                    <p><span className="font-semibold">Notes:</span> {entry.notes || "-"}</p>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="mt-4 space-y-2">
+              <p className="text-sm font-semibold">Weight History:</p>
+              {weightHistory.length === 0 ? (
+                <p className="text-sm">-</p>
+              ) : (
+                weightHistory.map((entry) => (
+                  <div
+                    key={`${entry["Goat ID"]}-${entry["Recorded At"]}-${entry["Weight KG"]}`}
+                    className="rounded-xl border border-farm-100 p-3 text-sm"
+                  >
+                    <p><span className="font-semibold">Weight:</span> {entry["Weight KG"] ? `${entry["Weight KG"]} KG` : "-"}</p>
+                    <p><span className="font-semibold">Recorded At:</span> {formatDateTime(entry["Recorded At"])}</p>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
-          <div className="mt-4 space-y-2">
-            <p className="text-sm font-semibold">Weight History:</p>
-            {weightHistory.length === 0 ? (
-              <p className="text-sm">-</p>
-            ) : (
-              weightHistory.map((entry) => (
-                <div
-                  key={`${entry["Goat ID"]}-${entry["Recorded At"]}-${entry["Weight KG"]}`}
-                  className="rounded-xl border border-farm-100 p-3 text-sm"
-                >
-                  <p><span className="font-semibold">Weight:</span> {entry["Weight KG"] ? `${entry["Weight KG"]} KG` : "-"}</p>
-                  <p><span className="font-semibold">Recorded At:</span> {formatDateTime(entry["Recorded At"])}</p>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+        </>
       )}
     </section>
   );

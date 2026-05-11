@@ -35,8 +35,7 @@ export default function GoatIdQrBlock({ encodedValue, displayLabel }: Props) {
       <div className="rounded-xl border border-farm-200 bg-white p-4 shadow-sm">
         <p className="mb-1 text-sm font-medium text-farm-700">ID tag QR</p>
         <p className="mb-3 text-xs text-slate-600">
-          Print and attach this tag. Scanning matches your goat ID (the same value is stored in the sheet QR column when
-          you save).
+          Print and attach this tag. Scanning matches your goat ID.
         </p>
         <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
           <div className="rounded-lg border border-farm-100 bg-farm-50 p-2">
