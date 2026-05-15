@@ -34,8 +34,8 @@ export default function GoatCard({ goat }: Props) {
         <div className="min-w-0 flex-1 text-sm">
           <p className="truncate">
             <span className="font-semibold">ID:</span> {goat.ID || "-"} |{" "}
-            <span className="font-semibold">Name:</span> {formattedName} |{" "}
-            <span className="font-semibold">Kasarian:</span> {genderLabel} |{" "}
+            <span className="font-semibold">Pangalan / Name:</span> {formattedName} |{" "}
+            <span className="font-semibold">Kasarian / Gender:</span> {genderLabel} |{" "}
             <span className="font-semibold">Bday:</span> {birthdateLabel}
           </p>
         </div>

@@ -297,7 +297,7 @@ export default function GoatForm({ initialValue, mode }: Props) {
       )}
 
       <label className="block">
-        <span className="mb-1 block text-sm font-medium">Kasarian</span>
+        <span className="mb-1 block text-sm font-medium">Kasarian / Gender</span>
         <select value={goat.Gender} onChange={(e) => handleChange("Gender", e.target.value as Goat["Gender"])} className="w-full rounded-xl border border-farm-200 p-3 text-base">
           <option value="">Piliin ang kasarian</option>
           <option value="M">Lalake</option>
@@ -311,7 +311,7 @@ export default function GoatForm({ initialValue, mode }: Props) {
       </label>
 
       <label className="block">
-        <span className="mb-1 block text-sm font-medium">Name</span>
+        <span className="mb-1 block text-sm font-medium">Pangalan / Name</span>
         <input value={goat.Name} onChange={(e) => handleChange("Name", e.target.value)} className="w-full rounded-xl border border-farm-200 p-3 text-base" />
       </label>
 
@@ -338,7 +338,7 @@ export default function GoatForm({ initialValue, mode }: Props) {
       </div>
 
       <label className="block">
-        <span className="mb-1 block text-sm font-medium">Tty bulog</span>
+        <span className="mb-1 block text-sm font-medium">Tty bulog / Parent buck</span>
         <select value={goat["Parent Buck"]} onChange={(e) => handleChange("Parent Buck", e.target.value)} className="w-full rounded-xl border border-farm-200 p-3 text-base">
           <option value="">Select goat</option>
           {buckOptions.map((option) => (
@@ -349,7 +349,7 @@ export default function GoatForm({ initialValue, mode }: Props) {
         </select>
       </label>
       <label className="block">
-        <span className="mb-1 block text-sm font-medium">Nny doe</span>
+        <span className="mb-1 block text-sm font-medium">Nny doe / Parent doe</span>
         <select value={goat["Parent Doe"]} onChange={(e) => handleChange("Parent Doe", e.target.value)} className="w-full rounded-xl border border-farm-200 p-3 text-base">
           <option value="">Select goat</option>
           {doeOptions.map((option) => (
@@ -365,7 +365,7 @@ export default function GoatForm({ initialValue, mode }: Props) {
         <input type="date" value={goat["Date Disposed"]} onChange={(e) => handleChange("Date Disposed", e.target.value)} className="w-full rounded-xl border border-farm-200 p-3 text-base" />
       </label>
 
-      <label className="block"><span className="mb-1 block text-sm font-medium">Weight (KG)</span><input type="number" step="0.01" value={goat.Weight} onChange={(e) => handleChange("Weight", e.target.value)} className="w-full rounded-xl border border-farm-200 p-3 text-base" /></label>
+      <label className="block"><span className="mb-1 block text-sm font-medium">Bigat / Weight (KG)</span><input type="number" step="0.01" value={goat.Weight} onChange={(e) => handleChange("Weight", e.target.value)} className="w-full rounded-xl border border-farm-200 p-3 text-base" /></label>
       <div className="space-y-3 rounded-xl border border-farm-100 p-3">
         <div className="flex items-center justify-between">
           <span className="block text-sm font-medium">Medical History</span>

@@ -74,12 +74,12 @@ export default function GoatDetailPage() {
   if (!goat) return <p>Goat not found.</p>;
 
   const labelMap: Record<string, string> = {
-    Name: "Name",
-    Gender: "Kasarian",
+    Name: "Pangalan / Name",
+    Gender: "Kasarian / Gender",
     "Date Disposed": "Date Disposed",
-    Weight: "Weight (KG)",
-    "Parent Buck": "Tty bulog",
-    "Parent Doe": "Nny doe",
+    Weight: "Bigat / Weight (KG)",
+    "Parent Buck": "Tty bulog / Parent buck",
+    "Parent Doe": "Nny doe / Parent doe",
     "Created At": "Created At",
     "Updated At": "Last Modified"
   };
