@@ -4,23 +4,20 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import GoatIdQrBlock from "@/components/GoatIdQrBlock";
 import GoatImage from "@/components/GoatImage";
+import {
+  medProductSelectOptions,
+  normalizeProductForEventType,
+  parseMedicalHistory,
+  type MedEventType,
+  type MedFrequency,
+  type MedHistoryEntry,
+  type MedProductCode
+} from "@/lib/medicalHistory";
 import { Goat } from "@/lib/types";
 
 type Props = {
   initialValue?: Goat;
   mode: "create" | "edit";
-};
-
-type MedFrequency = "quarterly" | "semi_annual" | "annual" | "none";
-type MedEventType = "vaccine" | "deworm" | "kapon" | "gave_birth" | "other";
-
-type MedHistoryEntry = {
-  id: string;
-  eventType: MedEventType;
-  dateGiven: string;
-  frequency: MedFrequency;
-  nextDueDate: string;
-  notes: string;
 };
 
 const createEmptyMedEntry = (): MedHistoryEntry => ({
@@ -29,28 +26,11 @@ const createEmptyMedEntry = (): MedHistoryEntry => ({
   dateGiven: "",
   frequency: "none",
   nextDueDate: "",
-  notes: ""
+  notes: "",
+  productCode: "",
+  bucklingCount: "",
+  doelingCount: ""
 });
-
-function parseMedicalHistory(rawValue: string): MedHistoryEntry[] {
-  if (!rawValue?.trim()) return [];
-
-  try {
-    const parsed = JSON.parse(rawValue) as Partial<MedHistoryEntry>[];
-    if (!Array.isArray(parsed)) return [];
-
-    return parsed.map((item) => ({
-      id: item.id || crypto.randomUUID(),
-      eventType: (item.eventType as MedEventType) || "other",
-      dateGiven: item.dateGiven || "",
-      frequency: (item.frequency as MedFrequency) || "none",
-      nextDueDate: item.nextDueDate || "",
-      notes: item.notes || ""
-    }));
-  } catch {
-    return [];
-  }
-}
 
 function computeNextDueDate(dateGiven: string, frequency: MedFrequency): string {
   if (!dateGiven || frequency === "none") return "";
@@ -111,7 +91,28 @@ export default function GoatForm({ initialValue, mode }: Props) {
       prev.map((entry) => {
         if (entry.id !== entryId) return entry;
 
-        const updatedEntry = { ...entry, [key]: value };
+        if (key === "eventType") {
+          const newType = value as MedEventType;
+          return {
+            ...entry,
+            eventType: newType,
+            bucklingCount: newType === "gave_birth" ? entry.bucklingCount : "",
+            doelingCount: newType === "gave_birth" ? entry.doelingCount : "",
+            productCode: newType === "gave_birth" ? "" : normalizeProductForEventType(newType, entry.productCode),
+            nextDueDate: computeNextDueDate(entry.dateGiven, entry.frequency)
+          };
+        }
+
+        const updatedEntry: MedHistoryEntry =
+          key === "frequency"
+            ? { ...entry, frequency: value as MedFrequency }
+            : key === "productCode"
+              ? {
+                  ...entry,
+                  productCode: normalizeProductForEventType(entry.eventType, value as MedProductCode)
+                }
+              : { ...entry, [key]: value };
+
         if (key === "dateGiven" || key === "frequency") {
           updatedEntry.nextDueDate = computeNextDueDate(updatedEntry.dateGiven, updatedEntry.frequency);
         }
@@ -134,7 +135,17 @@ export default function GoatForm({ initialValue, mode }: Props) {
 
     // Prevent non-female goats from retaining "gave_birth" medical events.
     setMedicalHistory((prev) =>
-      prev.map((entry) => (entry.eventType === "gave_birth" ? { ...entry, eventType: "other" } : entry))
+      prev.map((entry) =>
+        entry.eventType === "gave_birth"
+          ? {
+              ...entry,
+              eventType: "other",
+              bucklingCount: "",
+              doelingCount: "",
+              productCode: normalizeProductForEventType("other", entry.productCode)
+            }
+          : entry
+      )
     );
   }, [goat.Gender]);
 
@@ -372,15 +383,65 @@ export default function GoatForm({ initialValue, mode }: Props) {
               <select value={entry.eventType} onChange={(e) => updateMedicalEntry(entry.id, "eventType", e.target.value)} className="w-full rounded-lg border border-farm-200 p-2 text-sm">
                 <option value="vaccine">Vaccine</option>
                 <option value="deworm">Deworm</option>
-                <option value="kapon">Kapon</option>
                 {goat.Gender === "F" && <option value="gave_birth">Gave Birth</option>}
-                <option value="other">Other</option>
+                <option value="other">Other (medications & treatments)</option>
               </select>
             </label>
-            <label className="block">
-              <span className="mb-1 block text-xs font-medium">Date Given</span>
-              <input type="date" value={entry.dateGiven} onChange={(e) => updateMedicalEntry(entry.id, "dateGiven", e.target.value)} className="w-full rounded-lg border border-farm-200 p-2 text-sm" />
-            </label>
+            {medProductSelectOptions(entry.eventType).length > 0 && (
+              <label className="block">
+                <span className="mb-1 block text-xs font-medium">Treatment / vaccine</span>
+                <select
+                  value={entry.productCode}
+                  onChange={(e) => updateMedicalEntry(entry.id, "productCode", e.target.value)}
+                  className="w-full rounded-lg border border-farm-200 p-2 text-sm"
+                >
+                  {medProductSelectOptions(entry.eventType).map((opt) => (
+                    <option key={opt.value || "none"} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {entry.eventType === "gave_birth" ? (
+              <>
+                <label className="block">
+                  <span className="mb-1 block text-xs font-medium">Birthing date</span>
+                  <input type="date" value={entry.dateGiven} onChange={(e) => updateMedicalEntry(entry.id, "dateGiven", e.target.value)} className="w-full rounded-lg border border-farm-200 p-2 text-sm" />
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-medium">Number bucklings</span>
+                    <input
+                      type="number"
+                      min={0}
+                      step={1}
+                      inputMode="numeric"
+                      value={entry.bucklingCount}
+                      onChange={(e) => updateMedicalEntry(entry.id, "bucklingCount", e.target.value.replace(/\D/g, ""))}
+                      className="w-full rounded-lg border border-farm-200 p-2 text-sm"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-medium">Number doelings</span>
+                    <input
+                      type="number"
+                      min={0}
+                      step={1}
+                      inputMode="numeric"
+                      value={entry.doelingCount}
+                      onChange={(e) => updateMedicalEntry(entry.id, "doelingCount", e.target.value.replace(/\D/g, ""))}
+                      className="w-full rounded-lg border border-farm-200 p-2 text-sm"
+                    />
+                  </label>
+                </div>
+              </>
+            ) : (
+              <label className="block">
+                <span className="mb-1 block text-xs font-medium">Date given</span>
+                <input type="date" value={entry.dateGiven} onChange={(e) => updateMedicalEntry(entry.id, "dateGiven", e.target.value)} className="w-full rounded-lg border border-farm-200 p-2 text-sm" />
+              </label>
+            )}
             <label className="block">
               <span className="mb-1 block text-xs font-medium">Frequency</span>
               <select value={entry.frequency} onChange={(e) => updateMedicalEntry(entry.id, "frequency", e.target.value)} className="w-full rounded-lg border border-farm-200 p-2 text-sm">
@@ -395,7 +456,7 @@ export default function GoatForm({ initialValue, mode }: Props) {
               <input type="date" value={entry.nextDueDate} onChange={(e) => updateMedicalEntry(entry.id, "nextDueDate", e.target.value)} className="w-full rounded-lg border border-farm-200 p-2 text-sm" />
             </label>
             <label className="block">
-              <span className="mb-1 block text-xs font-medium">Notes</span>
+              <span className="mb-1 block text-xs font-medium">Notes / comments / advice</span>
               <textarea value={entry.notes} onChange={(e) => updateMedicalEntry(entry.id, "notes", e.target.value)} className="w-full rounded-lg border border-farm-200 p-2 text-sm" rows={2} />
             </label>
             <button type="button" onClick={() => removeMedicalEntry(entry.id)} className="rounded-lg bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">

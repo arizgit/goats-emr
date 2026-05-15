@@ -6,33 +6,14 @@ import { useParams } from "next/navigation";
 import GoatForm from "@/components/GoatForm";
 import GoatIdQrBlock from "@/components/GoatIdQrBlock";
 import GoatImage from "@/components/GoatImage";
+import { labelForMedProduct, parseMedicalHistory } from "@/lib/medicalHistory";
 import { Goat } from "@/lib/types";
-
-type MedicalHistoryEntry = {
-  id: string;
-  eventType: string;
-  dateGiven: string;
-  frequency: string;
-  nextDueDate: string;
-  notes: string;
-};
 
 type WeightHistoryEntry = {
   "Goat ID": string;
   "Recorded At": string;
   "Weight KG": string;
 };
-
-function parseMedicalHistory(value: string): MedicalHistoryEntry[] {
-  if (!value?.trim()) return [];
-
-  try {
-    const parsed = JSON.parse(value) as MedicalHistoryEntry[];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
 
 function formatDateTime(value: string): string {
   if (!value) return "-";
@@ -107,9 +88,8 @@ export default function GoatDetailPage() {
   const eventTypeLabelMap: Record<string, string> = {
     vaccine: "Vaccine",
     deworm: "Deworm",
-    kapon: "Kapon",
     gave_birth: "Gave Birth",
-    other: "Other"
+    other: "Other (medications & treatments)"
   };
   const frequencyLabelMap: Record<string, string> = {
     quarterly: "Quarterly",
@@ -183,10 +163,23 @@ export default function GoatDetailPage() {
                 medicalHistory.map((entry) => (
                   <div key={entry.id} className="rounded-xl border border-farm-100 p-3 text-sm">
                     <p><span className="font-semibold">Type:</span> {eventTypeLabelMap[entry.eventType] || "Other"}</p>
-                    <p><span className="font-semibold">Date Given:</span> {entry.dateGiven || "-"}</p>
+                    {entry.productCode ? (
+                      <p>
+                        <span className="font-semibold">Treatment / vaccine:</span> {labelForMedProduct(entry.productCode)}
+                      </p>
+                    ) : null}
+                    {entry.eventType === "gave_birth" ? (
+                      <>
+                        <p><span className="font-semibold">Birthing date:</span> {entry.dateGiven || "-"}</p>
+                        <p><span className="font-semibold">Number bucklings:</span> {entry.bucklingCount !== "" ? entry.bucklingCount : "-"}</p>
+                        <p><span className="font-semibold">Number doelings:</span> {entry.doelingCount !== "" ? entry.doelingCount : "-"}</p>
+                      </>
+                    ) : (
+                      <p><span className="font-semibold">Date given:</span> {entry.dateGiven || "-"}</p>
+                    )}
                     <p><span className="font-semibold">Frequency:</span> {frequencyLabelMap[entry.frequency] || "One-time / none"}</p>
-                    <p><span className="font-semibold">Next Due:</span> {entry.nextDueDate || "-"}</p>
-                    <p><span className="font-semibold">Notes:</span> {entry.notes || "-"}</p>
+                    <p><span className="font-semibold">Next due:</span> {entry.nextDueDate || "-"}</p>
+                    <p><span className="font-semibold">Notes / comments / advice:</span> {entry.notes || "-"}</p>
                   </div>
                 ))
               )}
