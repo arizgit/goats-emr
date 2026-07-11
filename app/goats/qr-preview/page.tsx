@@ -39,7 +39,7 @@ function QrPreviewBody() {
       ) : null}
       <p className="font-mono text-sm text-slate-700">{value}</p>
       <p className="hidden print:block print:text-center print:text-xs print:text-slate-500">
-        Scan this code in GoatsEMR to open the goat record.
+        Scan this tag in GoatsEMR to open the goat currently assigned to it.
       </p>
     </div>
   );

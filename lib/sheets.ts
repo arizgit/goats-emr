@@ -1,4 +1,5 @@
 import { google } from "googleapis";
+import { normalizeQrCode, qrCodeForSheetWrite } from "@/lib/qrCode";
 import { GOAT_HEADERS, Goat, WEIGHT_HISTORY_HEADERS, WeightHistoryEntry } from "@/lib/types";
 
 const SHEET_NAME = "Goats";
@@ -36,6 +37,7 @@ function getSpreadsheetId() {
 function rowToGoat(row: string[]): Goat {
   const isQrOnlyLayout = row.length >= 15;
   const isLegacyLayout = row.length >= 16;
+  const rawQr = isLegacyLayout ? row[6] || "" : row[5] || "";
 
   return {
     ID: row[0] || "",
@@ -43,7 +45,7 @@ function rowToGoat(row: string[]): Goat {
     Gender: (row[2] as Goat["Gender"]) || "",
     Birthdate: row[3] || "",
     Name: row[4] || "",
-    "QR Code": isLegacyLayout ? row[6] || "" : row[5] || "",
+    "QR Code": normalizeQrCode(rawQr),
     Image: isLegacyLayout ? row[15] || "" : row[14] || "",
     "Parent Buck": isLegacyLayout ? row[7] || "" : row[6] || "",
     "Parent Doe": isLegacyLayout ? row[8] || "" : row[7] || "",
@@ -63,7 +65,7 @@ function goatToRow(goat: Goat): string[] {
     goat.Gender,
     goat.Birthdate,
     goat.Name,
-    goat["QR Code"] || "",
+    qrCodeForSheetWrite(goat["QR Code"]),
     goat["Parent Buck"],
     goat["Parent Doe"],
     goat["Date Disposed"],
@@ -134,11 +136,29 @@ export async function getGoatById(id: string) {
 }
 
 export async function getGoatByQrCode(qrCode: string) {
+  const normalized = normalizeQrCode(qrCode);
+  if (!normalized) return null;
+
   const goats = await getAllGoats();
   return (
-    goats.find((goat) => goat["QR Code"] === qrCode) ||
-    goats.find((goat) => goat.ID === qrCode) ||
+    goats.find((goat) => normalizeQrCode(goat["QR Code"]) === normalized) ||
+    // Legacy fallback: older tags encoded the goat ID before QR codes were independent.
+    goats.find((goat) => goat.ID.trim().toUpperCase() === normalized) ||
     null
+  );
+}
+
+export async function findGoatWithQrCode(qrCode: string, excludeGoatId?: string) {
+  const normalized = normalizeQrCode(qrCode);
+  if (!normalized) return null;
+
+  const goats = await getAllGoats();
+  return (
+    goats.find(
+      (goat) =>
+        normalizeQrCode(goat["QR Code"]) === normalized &&
+        (!excludeGoatId || goat.ID !== excludeGoatId)
+    ) || null
   );
 }
 
@@ -169,6 +189,42 @@ export async function generateNextGoatId() {
 
   const next = maxNumericId + 1;
   return `G${String(next).padStart(5, "0")}`;
+}
+
+/** Physical tag IDs (reassignable). 3-char alphanumeric, e.g. 001, 00A, A1Z. */
+const QR_TAG_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const QR_TAG_LENGTH = 3;
+
+function indexToQrTag(index: number): string {
+  let value = index;
+  let code = "";
+  for (let i = 0; i < QR_TAG_LENGTH; i += 1) {
+    code = QR_TAG_ALPHABET[value % QR_TAG_ALPHABET.length] + code;
+    value = Math.floor(value / QR_TAG_ALPHABET.length);
+  }
+  return code;
+}
+
+export async function generateNextQrCode() {
+  const goats = await getAllGoats();
+  const used = new Set(
+    goats.map((goat) => normalizeQrCode(goat["QR Code"])).filter(Boolean)
+  );
+
+  const maxCodes = QR_TAG_ALPHABET.length ** QR_TAG_LENGTH;
+  // Start at 1 → "001" (skip "000")
+  for (let i = 1; i < maxCodes; i += 1) {
+    const candidate = indexToQrTag(i);
+    if (!used.has(candidate)) return candidate;
+  }
+
+  throw new Error("No available 3-character QR tag codes left.");
+}
+
+export async function clearQrCodeFromGoat(goatId: string) {
+  const goat = await getGoatById(goatId);
+  if (!goat) return false;
+  return updateGoatById(goatId, { ...goat, "QR Code": "", "Updated At": new Date().toISOString() });
 }
 
 function rowToWeightHistoryEntry(row: string[]): WeightHistoryEntry {

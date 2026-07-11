@@ -44,6 +44,9 @@ export default function ScanPage() {
   return (
     <section className="space-y-4">
       <h2 className="text-xl font-bold text-farm-700">Scan Goat QR Tag</h2>
+      <p className="text-sm text-slate-600">
+        Scan a physical tag to open the goat currently assigned to that QR code.
+      </p>
       <BarcodeScanner onDetected={onDetected} />
       <p className="rounded-xl bg-white p-3 text-sm">{isSearching ? "Searching..." : status}</p>
       {notFoundValue && (

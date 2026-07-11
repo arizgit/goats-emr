@@ -75,6 +75,7 @@ export default function GoatForm({ initialValue, mode }: Props) {
   const [success, setSuccess] = useState("");
   const [imageUploading, setImageUploading] = useState(false);
   const [idLoading, setIdLoading] = useState(mode === "create");
+  const [qrLoading, setQrLoading] = useState(false);
   const [allGoats, setAllGoats] = useState<Goat[]>([]);
   const [medicalHistory, setMedicalHistory] = useState<MedHistoryEntry[]>(
     parseMedicalHistory((initialValue || emptyGoat)["Medical History"] || "[]")
@@ -178,12 +179,18 @@ export default function GoatForm({ initialValue, mode }: Props) {
   useEffect(() => {
     if (mode !== "create" || !idLoading) return;
 
-    const fetchNextId = async () => {
+    const fetchNextIds = async () => {
       try {
-        const res = await fetch("/api/goats/next-id");
-        const json = (await res.json()) as { id?: string; error?: string };
-        if (!res.ok) throw new Error(json.error || "Failed to generate ID.");
-        handleChange("ID", json.id || "");
+        const [idRes, qrRes] = await Promise.all([fetch("/api/goats/next-id"), fetch("/api/goats/next-qr")]);
+        const idJson = (await idRes.json()) as { id?: string; error?: string };
+        const qrJson = (await qrRes.json()) as { qrCode?: string; error?: string };
+        if (!idRes.ok) throw new Error(idJson.error || "Failed to generate ID.");
+        if (!qrRes.ok) throw new Error(qrJson.error || "Failed to generate QR code.");
+        setGoat((prev) => ({
+          ...prev,
+          ID: idJson.id || "",
+          "QR Code": qrJson.qrCode || ""
+        }));
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to generate ID.");
       } finally {
@@ -191,8 +198,23 @@ export default function GoatForm({ initialValue, mode }: Props) {
       }
     };
 
-    void fetchNextId();
+    void fetchNextIds();
   }, [idLoading, mode]);
+
+  const generateQrCode = async () => {
+    setQrLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/goats/next-qr");
+      const json = (await res.json()) as { qrCode?: string; error?: string };
+      if (!res.ok) throw new Error(json.error || "Failed to generate QR code.");
+      handleChange("QR Code", json.qrCode || "");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to generate QR code.");
+    } finally {
+      setQrLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchGoats = async () => {
@@ -228,22 +250,25 @@ export default function GoatForm({ initialValue, mode }: Props) {
     [allGoats, parentCandidates]
   );
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const qrConflict = useMemo(() => {
+    const qr = goat["QR Code"].trim().toUpperCase();
+    if (!qr) return null;
+    return (
+      allGoats.find(
+        (item) => item["QR Code"].trim().toUpperCase() === qr && item.ID !== goat.ID
+      ) || null
+    );
+  }, [allGoats, goat.ID, goat["QR Code"]]);
+
+  const saveGoat = async (reassignQr: boolean) => {
+    setLoading(true);
     setError("");
     setSuccess("");
-
-    if (!goat.ID.trim()) {
-      setError("ID is required.");
-      return;
-    }
-
-    setLoading(true);
 
     try {
       const normalizedGoat: Goat = {
         ...goat,
-        "QR Code": goat.ID.trim(),
+        "QR Code": goat["QR Code"].trim(),
         "Medical History": JSON.stringify(medicalHistory),
         Name: goat.Name
           ? `${goat.Name.trim().charAt(0).toUpperCase()}${goat.Name.trim().slice(1)}`
@@ -255,10 +280,28 @@ export default function GoatForm({ initialValue, mode }: Props) {
       const res = await fetch(endpoint, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(normalizedGoat)
+        body: JSON.stringify({ ...normalizedGoat, reassignQr })
       });
 
-      const json = await res.json();
+      const json = (await res.json()) as {
+        error?: string;
+        conflictGoatId?: string;
+        conflictGoatName?: string;
+      };
+
+      if (res.status === 409 && json.conflictGoatId && !reassignQr) {
+        const ownerLabel = `${json.conflictGoatId}${json.conflictGoatName ? ` (${json.conflictGoatName})` : ""}`;
+        const confirmed = window.confirm(
+          `QR code ${normalizedGoat["QR Code"]} is already assigned to ${ownerLabel}.\n\nReassign this tag to the current goat? The previous goat will have no QR until you assign another.`
+        );
+        if (confirmed) {
+          await saveGoat(true);
+          return;
+        }
+        setError(json.error || "QR code is already assigned.");
+        return;
+      }
+
       if (!res.ok) throw new Error(json.error || "Request failed.");
 
       setSuccess(mode === "create" ? "Goat added successfully." : "Goat updated successfully.");
@@ -277,6 +320,19 @@ export default function GoatForm({ initialValue, mode }: Props) {
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+
+    if (!goat.ID.trim()) {
+      setError("ID is required.");
+      return;
+    }
+
+    await saveGoat(false);
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <h2 className="text-xl font-bold text-farm-700">{title}</h2>
@@ -290,10 +346,50 @@ export default function GoatForm({ initialValue, mode }: Props) {
           readOnly
           className="w-full rounded-xl border border-farm-200 p-3 text-base read-only:bg-farm-50"
         />
+        <p className="mt-1 text-xs text-slate-500">Permanent record ID. Not printed on tags and not reassigned.</p>
       </label>
 
-      {!idLoading && goat.ID.trim() && (
-        <GoatIdQrBlock encodedValue={goat.ID.trim()} displayLabel={goat.Name || undefined} />
+      <div className="space-y-2">
+        <label className="block">
+          <span className="mb-1 block text-sm font-medium">QR tag code</span>
+          <input
+            value={goat["QR Code"]}
+            onChange={(e) => handleChange("QR Code", e.target.value)}
+            placeholder={idLoading ? "Generating tag code..." : "e.g. 001"}
+            className="w-full rounded-xl border border-farm-200 p-3 font-mono text-base"
+          />
+        </label>
+        <p className="text-xs text-slate-500">
+          Reassignable physical tag. Encoded in the QR below. Clear to unassign, or generate a new unused code.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => void generateQrCode()}
+            disabled={qrLoading || idLoading}
+            className="rounded-xl bg-farm-100 px-4 py-2 text-sm font-semibold text-farm-800 disabled:opacity-60"
+          >
+            {qrLoading ? "Generating…" : "Generate new tag"}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleChange("QR Code", "")}
+            disabled={!goat["QR Code"].trim()}
+            className="rounded-xl bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 disabled:opacity-60"
+          >
+            Unassign tag
+          </button>
+        </div>
+        {qrConflict && (
+          <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">
+            This tag is currently on {qrConflict.ID}
+            {qrConflict.Name ? ` (${qrConflict.Name})` : ""}. Saving will ask to reassign it here.
+          </p>
+        )}
+      </div>
+
+      {!idLoading && goat["QR Code"].trim() && (
+        <GoatIdQrBlock encodedValue={goat["QR Code"].trim()} displayLabel={goat.Name || undefined} />
       )}
 
       <label className="block">
@@ -470,7 +566,7 @@ export default function GoatForm({ initialValue, mode }: Props) {
       {error && <p className="rounded-xl bg-red-100 p-3 text-sm text-red-700">{error}</p>}
       {success && <p className="rounded-xl bg-farm-100 p-3 text-sm text-farm-700">{success}</p>}
 
-      <button type="submit" disabled={loading || imageUploading || idLoading} className="w-full rounded-xl bg-farm-700 px-4 py-3 text-base font-bold text-white disabled:opacity-60">
+      <button type="submit" disabled={loading || imageUploading || idLoading || qrLoading} className="w-full rounded-xl bg-farm-700 px-4 py-3 text-base font-bold text-white disabled:opacity-60">
         {loading ? "Saving..." : "Save"}
       </button>
     </form>

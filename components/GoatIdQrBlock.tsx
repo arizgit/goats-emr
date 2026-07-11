@@ -35,15 +35,16 @@ export default function GoatIdQrBlock({ encodedValue, displayLabel }: Props) {
   return (
     <>
       <div className="rounded-xl border border-farm-200 bg-white p-4 shadow-sm">
-        <p className="mb-1 text-sm font-medium text-farm-700">ID tag QR</p>
+        <p className="mb-1 text-sm font-medium text-farm-700">Tag QR</p>
         <p className="mb-3 text-xs text-slate-600">
-          Print and attach this tag. Scanning matches your goat ID.
+          Print and attach this tag. Scanning opens the goat currently assigned to this QR code.
         </p>
         <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
           <div className="rounded-lg border border-farm-100 bg-farm-50 p-2">
             <QRCode value={encodedValue} size={128} level="M" />
           </div>
           <div className="flex w-full flex-col gap-2">
+            <p className="font-mono text-sm text-slate-700">{encodedValue}</p>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               <button
                 type="button"

@@ -84,7 +84,7 @@ export default function GoatDetailPage() {
     "Updated At": "Last Modified"
   };
   const medicalHistory = parseMedicalHistory(goat["Medical History"]);
-  const qrEncoded = goat["QR Code"]?.trim() || goat.ID.trim();
+  const qrEncoded = goat["QR Code"]?.trim() || "";
   const eventTypeLabelMap: Record<string, string> = {
     vaccine: "Vaccine",
     deworm: "Deworm",
@@ -145,7 +145,11 @@ export default function GoatDetailPage() {
         <>
           {qrEncoded ? (
             <GoatIdQrBlock encodedValue={qrEncoded} displayLabel={goat.Name || undefined} />
-          ) : null}
+          ) : (
+            <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              No QR tag assigned. Edit this goat to assign or generate a reassignable tag code.
+            </p>
+          )}
           <div className="space-y-2 rounded-2xl bg-white p-4">
             {Object.entries(goat)
               .filter(([key]) => key !== "Farm ID" && key !== "Medical History" && key !== "QR Code")

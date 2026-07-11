@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { appendGoat, appendWeightHistoryEntry, generateNextGoatId, getAllGoats, validateHeaders } from "@/lib/sheets";
-import { Goat } from "@/lib/types";
+import { findQrConflict, normalizeQrCode, type GoatWritePayload } from "@/lib/qrCode";
+import { appendGoat, appendWeightHistoryEntry, clearQrCodeFromGoat, generateNextGoatId, generateNextQrCode, getAllGoats, validateHeaders } from "@/lib/sheets";
 
 export async function GET() {
   try {
@@ -18,7 +18,8 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const goat = (await req.json()) as Goat;
+    const body = (await req.json()) as GoatWritePayload;
+    const { reassignQr, ...goat } = body;
     const now = new Date().toISOString();
 
     const headerValid = await validateHeaders();
@@ -28,8 +29,28 @@ export async function POST(req: NextRequest) {
       goat.ID = await generateNextGoatId();
     }
 
+    goat["QR Code"] = normalizeQrCode(goat["QR Code"]);
+    if (!goat["QR Code"]) {
+      goat["QR Code"] = await generateNextQrCode();
+    }
+
     const goats = await getAllGoats();
     if (goats.some((g) => g.ID === goat.ID)) return NextResponse.json({ error: "Duplicate ID." }, { status: 400 });
+
+    const conflict = findQrConflict(goats, goat["QR Code"], goat.ID);
+    if (conflict) {
+      if (!reassignQr) {
+        return NextResponse.json(
+          {
+            error: `QR code ${goat["QR Code"]} is already assigned to ${conflict.ID}${conflict.Name ? ` (${conflict.Name})` : ""}.`,
+            conflictGoatId: conflict.ID,
+            conflictGoatName: conflict.Name || ""
+          },
+          { status: 409 }
+        );
+      }
+      await clearQrCodeFromGoat(conflict.ID);
+    }
 
     goat["Created At"] = goat["Created At"] || now;
     goat["Updated At"] = now;
@@ -42,7 +63,7 @@ export async function POST(req: NextRequest) {
         "Weight KG": goat.Weight
       });
     }
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, goat });
   } catch (error) {
     console.error("POST /api/goats failed:", error);
     const message =
