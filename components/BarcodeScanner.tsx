@@ -8,14 +8,45 @@ type Props = {
   onDetected: (value: string) => void;
 };
 
+type BarcodeDetectorLike = {
+  detect: (source: ImageBitmapSource) => Promise<Array<{ rawValue?: string }>>;
+};
+
+type BarcodeDetectorCtor = new (options?: { formats?: string[] }) => BarcodeDetectorLike;
+
+function getBarcodeDetector(): BarcodeDetectorCtor | null {
+  if (typeof window === "undefined") return null;
+  return (window as Window & { BarcodeDetector?: BarcodeDetectorCtor }).BarcodeDetector || null;
+}
+
 export default function BarcodeScanner({ onDetected }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const onDetectedRef = useRef(onDetected);
   const lastDetectionRef = useRef<{ value: string; at: number } | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [error, setError] = useState("");
   const [torchEnabled, setTorchEnabled] = useState(false);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState("");
-  const [scanStatus, setScanStatus] = useState("Point camera at QR or barcode.");
+  const [scanStatus, setScanStatus] = useState("Align the QR code inside the square.");
+
+  useEffect(() => {
+    onDetectedRef.current = onDetected;
+  }, [onDetected]);
+
+  const emitDetection = (raw: string) => {
+    const value = raw.trim();
+    if (!value) return;
+
+    const now = Date.now();
+    const last = lastDetectionRef.current;
+    if (last && last.value === value && now - last.at < 1800) return;
+
+    lastDetectionRef.current = { value, at: now };
+    setScanStatus(`Detected: ${value}`);
+    onDetectedRef.current(value);
+  };
 
   const pickPreferredCamera = (cameras: MediaDeviceInfo[]) => {
     const rearCamera = cameras.find((device) =>
@@ -25,23 +56,110 @@ export default function BarcodeScanner({ onDetected }: Props) {
   };
 
   useEffect(() => {
+    let cancelled = false;
+    let rafId = 0;
+    let lastAttemptAt = 0;
+
     const hints = new Map();
     hints.set(DecodeHintType.TRY_HARDER, true);
-    hints.set(DecodeHintType.POSSIBLE_FORMATS, [
-      BarcodeFormat.QR_CODE,
-      BarcodeFormat.CODE_128,
-      BarcodeFormat.CODE_39
-    ]);
-    const reader = new BrowserMultiFormatReader(hints);
+    hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.QR_CODE]);
+    const zxingReader = new BrowserMultiFormatReader(hints, {
+      delayBetweenScanAttempts: 100,
+      delayBetweenScanSuccess: 1200
+    });
 
-    let activeControls: { stop: () => void } | null = null;
+    const Detector = getBarcodeDetector();
+    const nativeDetector = Detector ? new Detector({ formats: ["qr_code"] }) : null;
+
+    const stopStream = () => {
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+      if (videoRef.current) videoRef.current.srcObject = null;
+    };
+
+    const decodeFrame = async () => {
+      if (cancelled) return;
+
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      if (!video || !canvas || video.readyState < 2) {
+        rafId = window.requestAnimationFrame(() => {
+          void decodeFrame();
+        });
+        return;
+      }
+
+      const now = Date.now();
+      // ~8 attempts/sec keeps CPU reasonable on phones.
+      if (now - lastAttemptAt < 120) {
+        rafId = window.requestAnimationFrame(() => {
+          void decodeFrame();
+        });
+        return;
+      }
+      lastAttemptAt = now;
+
+      const vw = video.videoWidth;
+      const vh = video.videoHeight;
+      if (!vw || !vh) {
+        rafId = window.requestAnimationFrame(() => {
+          void decodeFrame();
+        });
+        return;
+      }
+
+      // Crop a centered square — denser pixels on the QR than full-frame decode.
+      const side = Math.floor(Math.min(vw, vh) * 0.72);
+      const sx = Math.floor((vw - side) / 2);
+      const sy = Math.floor((vh - side) / 2);
+      const size = Math.min(720, side);
+
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      if (!ctx) {
+        rafId = window.requestAnimationFrame(() => {
+          void decodeFrame();
+        });
+        return;
+      }
+
+      ctx.drawImage(video, sx, sy, side, side, 0, 0, size, size);
+
+      try {
+        if (nativeDetector) {
+          const codes = await nativeDetector.detect(canvas);
+          const value = codes[0]?.rawValue?.trim();
+          if (value) emitDetection(value);
+        }
+      } catch {
+        // Native detector unavailable for this frame — fall through to ZXing.
+      }
+
+      try {
+        const result = zxingReader.decodeFromCanvas(canvas);
+        const value = result.getText().trim();
+        if (value) emitDetection(value);
+      } catch {
+        // No QR in this frame.
+      }
+
+      if (!cancelled) {
+        rafId = window.requestAnimationFrame(() => {
+          void decodeFrame();
+        });
+      }
+    };
 
     const start = async () => {
       try {
         lastDetectionRef.current = null;
         setError("");
-        setScanStatus("Point camera at QR or barcode.");
+        setScanStatus("Align the QR code inside the square.");
+        setTorchEnabled(false);
+
         const videoDevices = await BrowserMultiFormatReader.listVideoInputDevices();
+        if (cancelled) return;
         setDevices(videoDevices);
 
         if (videoDevices.length === 0) {
@@ -49,20 +167,26 @@ export default function BarcodeScanner({ onDetected }: Props) {
           return;
         }
 
-        const preferredDeviceId =
-          selectedDeviceId || pickPreferredCamera(videoDevices)?.deviceId || "";
+        const preferred = selectedDeviceId
+          ? videoDevices.find((d) => d.deviceId === selectedDeviceId) || pickPreferredCamera(videoDevices)
+          : pickPreferredCamera(videoDevices);
 
-        if (!selectedDeviceId && preferredDeviceId) {
-          setSelectedDeviceId(preferredDeviceId);
+        if (!selectedDeviceId && preferred?.deviceId) {
+          setSelectedDeviceId(preferred.deviceId);
           return;
         }
 
-        if (!videoRef.current) return;
+        if (!videoRef.current || !preferred) return;
 
+        stopStream();
+
+        // Prefer facingMode on first open; exact deviceId can fail on some iOS builds.
         const constraints: MediaStreamConstraints = {
-          video: preferredDeviceId
+          audio: false,
+          video: selectedDeviceId
             ? {
-                deviceId: { exact: preferredDeviceId },
+                deviceId: { ideal: selectedDeviceId },
+                facingMode: { ideal: "environment" },
                 width: { ideal: 1920 },
                 height: { ideal: 1080 }
               }
@@ -73,38 +197,66 @@ export default function BarcodeScanner({ onDetected }: Props) {
               }
         };
 
-        activeControls = await reader.decodeFromConstraints(constraints, videoRef.current, (result) => {
-          if (result) {
-            const value = result.getText().trim();
-            if (!value) return;
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        if (cancelled) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
 
-            const now = Date.now();
-            const last = lastDetectionRef.current;
+        streamRef.current = stream;
+        videoRef.current.srcObject = stream;
+        videoRef.current.setAttribute("playsinline", "true");
+        videoRef.current.muted = true;
+        await videoRef.current.play();
 
-            // Ignore immediate duplicate reads from the same frame stream.
-            if (last && last.value === value && now - last.at < 1500) return;
+        // Nudge continuous autofocus / zoom when the platform allows it.
+        const track = stream.getVideoTracks()[0];
+        if (track) {
+          try {
+            const capabilities = track.getCapabilities?.() as
+              | (MediaTrackCapabilities & { focusMode?: string[]; zoom?: { min: number; max: number } })
+              | undefined;
+            const advanced: Record<string, unknown>[] = [];
+            if (capabilities?.focusMode?.includes("continuous")) {
+              advanced.push({ focusMode: "continuous" });
+            }
+            if (capabilities?.zoom && capabilities.zoom.max > capabilities.zoom.min) {
+              const mid = Math.min(
+                capabilities.zoom.max,
+                Math.max(capabilities.zoom.min, (capabilities.zoom.min + capabilities.zoom.max) / 3)
+              );
+              advanced.push({ zoom: mid });
+            }
+            if (advanced.length) {
+              await track.applyConstraints({ advanced: advanced as MediaTrackConstraintSet[] });
+            }
+          } catch {
+            // Optional constraints — ignore if unsupported.
+          }
+        }
 
-            lastDetectionRef.current = { value, at: now };
-            setScanStatus(`Detected: ${value}`);
-            onDetected(value);
-          } 
+        rafId = window.requestAnimationFrame(() => {
+          void decodeFrame();
         });
       } catch {
-        setError("Hindi mabuksan ang camera. Please allow camera access.");
+        if (!cancelled) setError("Hindi mabuksan ang camera. Please allow camera access.");
       }
     };
 
     void start();
 
     return () => {
-      activeControls?.stop();
+      cancelled = true;
+      if (rafId) window.cancelAnimationFrame(rafId);
+      stopStream();
     };
-  }, [onDetected, selectedDeviceId]);
+  }, [selectedDeviceId]);
 
   const toggleTorch = async () => {
-    const track = videoRef.current?.srcObject instanceof MediaStream
-      ? videoRef.current.srcObject.getVideoTracks()[0]
-      : null;
+    const track =
+      videoRef.current?.srcObject instanceof MediaStream
+        ? videoRef.current.srcObject.getVideoTracks()[0]
+        : null;
 
     if (!track) return;
 
@@ -129,13 +281,19 @@ export default function BarcodeScanner({ onDetected }: Props) {
 
   return (
     <div className="space-y-3">
-      <video
-        ref={videoRef}
-        autoPlay
-        muted
-        playsInline
-        className="w-full rounded-2xl border border-farm-100 bg-black"
-      />
+      <div className="relative overflow-hidden rounded-2xl border border-farm-100 bg-black">
+        <video
+          ref={videoRef}
+          autoPlay
+          muted
+          playsInline
+          className="aspect-[3/4] w-full object-cover"
+        />
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="h-[58%] max-h-[20rem] w-[72%] max-w-[20rem] rounded-2xl border-2 border-white/90 shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]" />
+        </div>
+        <canvas ref={canvasRef} className="hidden" aria-hidden />
+      </div>
       <button
         type="button"
         onClick={switchCamera}
