@@ -3,6 +3,7 @@
 import QRCode from "react-qr-code";
 import { Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import TagBarcode from "@/components/TagBarcode";
 
 function QrPreviewBody() {
   const searchParams = useSearchParams();
@@ -24,7 +25,7 @@ function QrPreviewBody() {
   if (!value) {
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center p-8 text-center">
-        <p className="text-farm-800">Missing QR value. Open this page from the goat form.</p>
+        <p className="text-farm-800">Missing tag value. Open this page from the goat form.</p>
       </div>
     );
   }
@@ -34,12 +35,21 @@ function QrPreviewBody() {
       <div className="rounded-2xl border border-farm-200 bg-white p-6 shadow-sm print:border-0 print:shadow-none">
         <QRCode value={value} size={320} level="M" className="print:h-auto print:w-full print:max-w-md" />
       </div>
+      <div className="w-full max-w-lg rounded-2xl border border-farm-200 bg-white p-6 shadow-sm print:border-0 print:shadow-none">
+        <TagBarcode
+          value={value}
+          height={96}
+          barWidth={3}
+          fontSize={22}
+          className="h-auto w-full print:max-w-none"
+        />
+      </div>
       {autoPrint && label ? (
         <h1 className="text-center text-2xl font-bold text-farm-800 print:text-xl">{label}</h1>
       ) : null}
       <p className="font-mono text-5xl text-slate-700">{value}</p>
       <p className="hidden print:block print:text-center print:text-xs print:text-slate-500">
-        Scan this tag in GoatsEMR to open the goat currently assigned to it.
+        Scan the QR or barcode in GoatsEMR to open the goat currently assigned to this tag.
       </p>
     </div>
   );

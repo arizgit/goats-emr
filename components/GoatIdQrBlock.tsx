@@ -2,6 +2,7 @@
 
 import QRCode from "react-qr-code";
 import { useMemo, useState } from "react";
+import TagBarcode from "@/components/TagBarcode";
 
 type Props = {
   encodedValue: string;
@@ -35,13 +36,18 @@ export default function GoatIdQrBlock({ encodedValue, displayLabel }: Props) {
   return (
     <>
       <div className="rounded-xl border border-farm-200 bg-white p-4 shadow-sm">
-        <p className="mb-1 text-sm font-medium text-farm-700">Tag QR</p>
+        <p className="mb-1 text-sm font-medium text-farm-700">Tag QR & barcode</p>
         <p className="mb-3 text-xs text-slate-600">
-          Print and attach this tag. Scanning opens the goat currently assigned to this QR code.
+          Print and attach this tag. Scan either the QR or the barcode to open the goat assigned to this code.
         </p>
         <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
-          <div className="rounded-lg border border-farm-100 bg-farm-50 p-2">
-            <QRCode value={encodedValue} size={128} level="M" />
+          <div className="flex flex-col items-center gap-3">
+            <div className="rounded-lg border border-farm-100 bg-farm-50 p-2">
+              <QRCode value={encodedValue} size={128} level="M" />
+            </div>
+            <div className="w-full max-w-[16rem] rounded-lg border border-farm-100 bg-white p-2">
+              <TagBarcode value={encodedValue} height={48} barWidth={2} fontSize={14} className="h-auto w-full" />
+            </div>
           </div>
           <div className="flex w-full flex-col gap-2">
             <p className="font-mono text-sm text-slate-700">{encodedValue}</p>
@@ -77,7 +83,7 @@ export default function GoatIdQrBlock({ encodedValue, displayLabel }: Props) {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
           role="dialog"
           aria-modal="true"
-          aria-label="QR code enlarged"
+          aria-label="Tag code enlarged"
         >
           <div className="relative max-h-[90vh] overflow-auto rounded-2xl bg-white p-6 shadow-xl">
             <button
@@ -87,8 +93,15 @@ export default function GoatIdQrBlock({ encodedValue, displayLabel }: Props) {
             >
               Close
             </button>
-            <div className="mt-8 flex flex-col items-center gap-3">
+            <div className="mt-8 flex flex-col items-center gap-6">
               <QRCode value={encodedValue} size={280} level="M" />
+              <TagBarcode
+                value={encodedValue}
+                height={80}
+                barWidth={3}
+                fontSize={20}
+                className="max-w-full"
+              />
               <p className="font-mono text-5xl text-slate-600">{encodedValue}</p>
             </div>
           </div>

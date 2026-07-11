@@ -15,7 +15,7 @@ export default function BarcodeScanner({ onDetected }: Props) {
   const [torchEnabled, setTorchEnabled] = useState(false);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState("");
-  const [scanStatus, setScanStatus] = useState("Point camera at QR code.");
+  const [scanStatus, setScanStatus] = useState("Point camera at QR or barcode.");
 
   const pickPreferredCamera = (cameras: MediaDeviceInfo[]) => {
     const rearCamera = cameras.find((device) =>
@@ -28,7 +28,9 @@ export default function BarcodeScanner({ onDetected }: Props) {
     const hints = new Map();
     hints.set(DecodeHintType.TRY_HARDER, true);
     hints.set(DecodeHintType.POSSIBLE_FORMATS, [
-      BarcodeFormat.QR_CODE
+      BarcodeFormat.QR_CODE,
+      BarcodeFormat.CODE_128,
+      BarcodeFormat.CODE_39
     ]);
     const reader = new BrowserMultiFormatReader(hints);
 
@@ -38,7 +40,7 @@ export default function BarcodeScanner({ onDetected }: Props) {
       try {
         lastDetectionRef.current = null;
         setError("");
-        setScanStatus("Point camera at QR code.");
+        setScanStatus("Point camera at QR or barcode.");
         const videoDevices = await BrowserMultiFormatReader.listVideoInputDevices();
         setDevices(videoDevices);
 
