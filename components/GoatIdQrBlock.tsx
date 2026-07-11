@@ -15,14 +15,16 @@ export default function GoatIdQrBlock({ encodedValue, displayLabel }: Props) {
     if (!encodedValue) return "";
     const params = new URLSearchParams();
     params.set("value", encodedValue);
-    if (displayLabel?.trim()) params.set("label", displayLabel.trim());
     return `/goats/qr-preview?${params.toString()}`;
-  }, [encodedValue, displayLabel]);
+  }, [encodedValue]);
 
   const openPreview = (options?: { print?: boolean }) => {
     if (!encodedValue) return;
     const url = new URL(previewUrl, window.location.origin);
-    if (options?.print) url.searchParams.set("print", "1");
+    if (options?.print) {
+      url.searchParams.set("print", "1");
+      if (displayLabel?.trim()) url.searchParams.set("label", displayLabel.trim());
+    }
     window.open(url.pathname + url.search, "_blank", "noopener,noreferrer");
   };
 
@@ -86,9 +88,6 @@ export default function GoatIdQrBlock({ encodedValue, displayLabel }: Props) {
             </button>
             <div className="mt-8 flex flex-col items-center gap-3">
               <QRCode value={encodedValue} size={280} level="M" />
-              {displayLabel?.trim() && (
-                <p className="text-center text-lg font-semibold text-farm-800">{displayLabel.trim()}</p>
-              )}
               <p className="font-mono text-sm text-slate-600">{encodedValue}</p>
             </div>
           </div>

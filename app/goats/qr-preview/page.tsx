@@ -34,7 +34,9 @@ function QrPreviewBody() {
       <div className="rounded-2xl border border-farm-200 bg-white p-6 shadow-sm print:border-0 print:shadow-none">
         <QRCode value={value} size={320} level="M" className="print:h-auto print:w-full print:max-w-md" />
       </div>
-      {label ? <h1 className="text-center text-2xl font-bold text-farm-800 print:text-xl">{label}</h1> : null}
+      {autoPrint && label ? (
+        <h1 className="text-center text-2xl font-bold text-farm-800 print:text-xl">{label}</h1>
+      ) : null}
       <p className="font-mono text-sm text-slate-700">{value}</p>
       <p className="hidden print:block print:text-center print:text-xs print:text-slate-500">
         Scan this code in GoatsEMR to open the goat record.
