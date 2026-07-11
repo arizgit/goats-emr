@@ -37,7 +37,7 @@ export default function GoatIdQrBlock({ encodedValue, displayLabel }: Props) {
       <div className="rounded-xl border border-farm-200 bg-white p-4 shadow-sm">
         <p className="mb-1 text-sm font-medium text-farm-700">Tag QR</p>
         <p className="mb-3 text-xs text-slate-600">
-          Print and attach this tag. Scanning the QR (or typing the printed tag ID) opens the assigned goat.
+          Print and attach this tag. Scanning the QR (or typing the printed tag ID on the right) opens the assigned goat.
         </p>
         <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
           <div className="rounded-lg border border-farm-100 bg-farm-50 p-2">
@@ -87,9 +87,14 @@ export default function GoatIdQrBlock({ encodedValue, displayLabel }: Props) {
             >
               Close
             </button>
-            <div className="mt-8 flex flex-col items-center gap-3">
+            <div className="mt-8 inline-flex items-center gap-4">
               <QRCode value={encodedValue} size={280} level="H" />
-              <p className="font-mono text-5xl text-slate-600">{encodedValue}</p>
+              <p
+                className="font-mono text-5xl font-bold leading-none tracking-[0.15em] text-slate-600"
+                style={{ writingMode: "vertical-rl", textOrientation: "upright" }}
+              >
+                {encodedValue}
+              </p>
             </div>
           </div>
         </div>

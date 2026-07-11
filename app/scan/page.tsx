@@ -57,13 +57,13 @@ export default function ScanPage() {
     <section className="space-y-4">
       <h2 className="text-xl font-bold text-farm-700">Scan Goat Tag</h2>
       <p className="text-sm text-slate-600">
-        Point the camera at the QR, or type the tag ID printed under it if the camera cannot read the code.
+        Point the camera at the QR, or type the tag ID printed on its right side if the camera cannot read the code.
       </p>
       <BarcodeScanner onDetected={onDetected} />
 
       <form onSubmit={(e) => void submitManualTag(e)} className="space-y-2 rounded-xl border border-farm-200 bg-white p-4">
         <label className="block">
-          <span className="mb-1 block text-sm font-medium text-farm-800">Tag ID (printed under QR)</span>
+          <span className="mb-1 block text-sm font-medium text-farm-800">Tag ID (printed on right of QR)</span>
           <input
             value={manualTagId}
             onChange={(e) => setManualTagId(e.target.value)}

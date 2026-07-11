@@ -31,15 +31,22 @@ function QrPreviewBody() {
 
   return (
     <div className="flex min-h-[70vh] flex-col items-center justify-center gap-6 p-6 print:min-h-0 print:gap-4 print:p-8">
-      <div className="rounded-2xl border border-farm-200 bg-white p-6 shadow-sm print:border-0 print:shadow-none">
-        <QRCode value={value} size={320} level="H" className="print:h-auto print:w-full print:max-w-md" />
+      <div className="inline-flex items-center gap-4 rounded-2xl border border-farm-200 bg-white p-6 shadow-sm print:border-0 print:shadow-none print:gap-3 print:p-4">
+        <QRCode value={value} size={320} level="H" className="print:h-auto print:w-[2.6in] print:max-w-none" />
+        {/* East-side tag ID: upright letters stacked along the right edge */}
+        <p
+          className="select-none font-mono text-5xl font-bold leading-none tracking-[0.15em] text-slate-900 print:text-4xl"
+          style={{ writingMode: "vertical-rl", textOrientation: "upright" }}
+          aria-label={`Tag ID ${value}`}
+        >
+          {value}
+        </p>
       </div>
       {autoPrint && label ? (
         <h1 className="text-center text-2xl font-bold text-farm-800 print:text-xl">{label}</h1>
       ) : null}
-      <p className="font-mono text-5xl text-slate-700">{value}</p>
       <p className="hidden print:block print:text-center print:text-xs print:text-slate-500">
-        Scan this QR in GoatsEMR, or enter the tag ID printed below it.
+        Scan this QR in GoatsEMR, or enter the tag ID printed on the right.
       </p>
     </div>
   );
