@@ -37,7 +37,7 @@ function QrPreviewBody() {
       {autoPrint && label ? (
         <h1 className="text-center text-2xl font-bold text-farm-800 print:text-xl">{label}</h1>
       ) : null}
-      <p className="font-mono text-sm text-slate-700">{value}</p>
+      <p className="font-mono text-5xl text-slate-700">{value}</p>
       <p className="hidden print:block print:text-center print:text-xs print:text-slate-500">
         Scan this tag in GoatsEMR to open the goat currently assigned to it.
       </p>

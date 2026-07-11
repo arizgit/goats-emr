@@ -89,7 +89,7 @@ export default function GoatIdQrBlock({ encodedValue, displayLabel }: Props) {
             </button>
             <div className="mt-8 flex flex-col items-center gap-3">
               <QRCode value={encodedValue} size={280} level="M" />
-              <p className="font-mono text-sm text-slate-600">{encodedValue}</p>
+              <p className="font-mono text-5xl text-slate-600">{encodedValue}</p>
             </div>
           </div>
         </div>
